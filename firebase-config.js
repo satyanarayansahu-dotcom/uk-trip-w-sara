@@ -30,9 +30,9 @@ const fbAuth = firebase.auth();
 //  Sign up free at https://www.emailjs.com (200 emails/month)
 //  Then paste your values below.
 // ─────────────────────────────────────────────────────────────────────────────
-const EMAILJS_PUBLIC_KEY  = 'PASTE_YOUR_EMAILJS_PUBLIC_KEY';
-const EMAILJS_SERVICE_ID  = 'PASTE_YOUR_EMAILJS_SERVICE_ID';
-const EMAILJS_TEMPLATE_ID = 'PASTE_YOUR_EMAILJS_TEMPLATE_ID';
+const EMAILJS_PUBLIC_KEY  = 'yelB0Kh2mKM8h75OI';
+const EMAILJS_SERVICE_ID  = 'service_607fd7k';
+const EMAILJS_TEMPLATE_ID = 'template_2zj8iud';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  FireDB — drop-in replacement for Auth.getData / Auth.saveData
