@@ -35,11 +35,15 @@ const EMAILJS_SERVICE_ID  = 'service_607fd7k';
 const EMAILJS_TEMPLATE_ID = 'template_2zj8iud';
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Super User — email used to identify the superuser account.
-//  Set SUPERUSER_PASSWORD in your browser console or environment before
-//  calling Auth.seedSuperUser() for the first time.
+//  OCR.space — free OCR for flight ticket extraction.
+//  Free API key (25k req/month): https://ocr.space/ocrapi/freekey
+//  Replace 'helloworld' with your own key for higher limits.
 // ─────────────────────────────────────────────────────────────────────────────
-const SUPERUSER_EMAIL = 'superadmin@trip.app';
+const OCR_SPACE_API_KEY = 'helloworld';
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Super User — email used to identify the superuser account.
+
 
 
 //  Trip data:  trips/{tripId}/data/{section}

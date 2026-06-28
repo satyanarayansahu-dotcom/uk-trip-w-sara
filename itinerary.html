@@ -410,7 +410,10 @@
     <div class="card">
       <div class="card-head">
         <div class="card-title">Flights</div>
-        <button class="btn btn-primary" onclick="addFlight()">+ Add flight</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="openUploadModal()">📎 Upload ticket</button>
+          <button class="btn btn-primary" onclick="addFlight()">+ Add flight</button>
+        </div>
       </div>
       <div class="row-list" id="flights-list"></div>
     </div>
@@ -551,6 +554,53 @@
     </div>
   </div>
 
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FLIGHT TICKET UPLOAD MODAL
+═══════════════════════════════════════════ -->
+<div id="upload-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeUploadModal()">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:28px">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:800">📎 Upload flight ticket</div>
+      <button onclick="closeUploadModal()" style="background:none;border:none;color:#8b949e;font-size:20px;cursor:pointer;line-height:1">×</button>
+    </div>
+
+    <!-- Drop zone -->
+    <div id="upload-dropzone" style="border:2px dashed #30363d;border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:16px" onclick="document.getElementById('ticket-file-input').click()" ondragover="event.preventDefault();this.style.borderColor='#58a6ff'" ondragleave="this.style.borderColor='#30363d'" ondrop="event.preventDefault();this.style.borderColor='#30363d';handleTicketFile(event.dataTransfer.files[0])">
+      <div style="font-size:32px;margin-bottom:8px">🎫</div>
+      <div style="font-size:14px;font-weight:600;color:#e6edf3">Drop your ticket here or click to browse</div>
+      <div style="font-size:12px;color:#8b949e;margin-top:4px">PDF, JPG or PNG · Max 5MB</div>
+      <input type="file" id="ticket-file-input" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleTicketFile(this.files[0])"/>
+    </div>
+
+    <!-- Status -->
+    <div id="upload-status" style="display:none;text-align:center;padding:16px;font-size:13px;color:#8b949e"></div>
+    <div id="upload-error" style="display:none;background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#f85149;margin-bottom:16px"></div>
+
+    <!-- Extracted preview form -->
+    <div id="upload-preview" style="display:none">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8b949e;margin-bottom:14px">Extracted details — review and correct before adding</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Airline</label><input id="ex-carrier"  style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. Qatar Airways"/></div>
+        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Flight No.</label><input id="ex-flightNo" style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. QR947"/></div>
+        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Date</label><input id="ex-date"     style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" type="date"/></div>
+        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Booking Ref</label><input id="ex-ref"      style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. ABC123"/></div>
+        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">From</label><input id="ex-from"     style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. Singapore (T1)"/></div>
+        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Departure time</label><input id="ex-dep"      style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. 19:30"/></div>
+        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">To</label><input id="ex-to"       style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. London (Heathrow)"/></div>
+        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Arrival time</label><input id="ex-arr"      style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. 06:25"/></div>
+        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Cost</label><input id="ex-cost"     style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. 450"/></div>
+        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Currency</label><input id="ex-currency" style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. SGD"/></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button onclick="confirmExtraction()" style="flex:1;padding:11px;background:#58a6ff;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">+ Add to flights</button>
+        <button onclick="closeUploadModal()" style="padding:11px 20px;background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:8px;font-size:13px;cursor:pointer">Cancel</button>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <div class="save-toast" id="toast">Saved ✓</div>
@@ -1319,6 +1369,197 @@ function enforceRole() {
     notice.textContent = '👁 View only — you have Viewer access';
     document.body.appendChild(notice);
   }
+}
+
+// ══════════════════════════════════════════════
+//  FLIGHT TICKET UPLOAD + OCR
+// ══════════════════════════════════════════════
+
+const AIRLINES = ['Air France','Air India','American Airlines','British Airways','Cathay Pacific','Delta','Emirates','Etihad','Finnair','Iberia','Japan Airlines','KLM','Korean Air','Lufthansa','Malaysia Airlines','Qantas','Qatar Airways','Royal Brunei','Scoot','Singapore Airlines','SriLankan','Swiss','Thai Airways','Turkish Airlines','United Airlines','Virgin Atlantic','Wizz Air'];
+
+const IATA_AIRPORTS = {
+  'SIN':'Singapore','LHR':'London Heathrow','LGW':'London Gatwick','CDG':'Paris','DXB':'Dubai','DOH':'Doha','AMS':'Amsterdam','FRA':'Frankfurt','SYD':'Sydney','MEL':'Melbourne','HKG':'Hong Kong','NRT':'Tokyo Narita','HND':'Tokyo Haneda','ICN':'Seoul','BKK':'Bangkok','KUL':'Kuala Lumpur','CGK':'Jakarta','MNL':'Manila','DEL':'Delhi','BOM':'Mumbai','ORD':'Chicago','JFK':'New York JFK','LAX':'Los Angeles','SFO':'San Francisco','YYZ':'Toronto','DFW':'Dallas','ATL':'Atlanta','MIA':'Miami','SEA':'Seattle','LIS':'Lisbon','MAD':'Madrid','BCN':'Barcelona','FCO':'Rome','MXP':'Milan','VIE':'Vienna','ZUR':'Zurich','CPH':'Copenhagen','ARN':'Stockholm','HEL':'Helsinki','OSL':'Oslo','DUB':'Dublin','MAN':'Manchester','EDI':'Edinburgh','BHX':'Birmingham','GLA':'Glasgow'
+};
+
+function openUploadModal() {
+  const m = document.getElementById('upload-modal');
+  m.style.display = 'flex';
+  document.getElementById('upload-preview').style.display = 'none';
+  document.getElementById('upload-status').style.display = 'none';
+  document.getElementById('upload-error').style.display = 'none';
+  document.getElementById('upload-dropzone').style.display = 'block';
+  document.getElementById('ticket-file-input').value = '';
+}
+
+function closeUploadModal() {
+  document.getElementById('upload-modal').style.display = 'none';
+}
+
+async function handleTicketFile(file) {
+  if (!file) return;
+  const allowed = ['application/pdf','image/jpeg','image/png','image/jpg'];
+  if (!allowed.includes(file.type)) {
+    showUploadError('Please upload a PDF, JPG or PNG file.'); return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showUploadError('File is too large. Maximum size is 5MB.'); return;
+  }
+  document.getElementById('upload-dropzone').style.display = 'none';
+  document.getElementById('upload-error').style.display = 'none';
+  showUploadStatus('🔍 Reading your ticket…');
+
+  try {
+    const text = await callOCR(file);
+    if (!text || text.trim().length < 20) {
+      showUploadError('Could not read text from this file. Try a clearer image or a text-based PDF.'); return;
+    }
+    const parsed = parseFlightText(text);
+    populatePreview(parsed);
+    document.getElementById('upload-status').style.display = 'none';
+    document.getElementById('upload-preview').style.display = 'block';
+  } catch(e) {
+    showUploadError('OCR failed: ' + e.message);
+  }
+}
+
+async function callOCR(file) {
+  const form = new FormData();
+  form.append('file', file, file.name);
+  form.append('language', 'eng');
+  form.append('isOverlayRequired', 'false');
+  form.append('detectOrientation', 'true');
+  form.append('scale', 'true');
+  form.append('OCREngine', '2');
+  form.append('isTable', 'false');
+
+  const res = await fetch('https://api.ocr.space/parse/image', {
+    method: 'POST',
+    headers: { 'apikey': (typeof OCR_SPACE_API_KEY !== 'undefined' ? OCR_SPACE_API_KEY : 'helloworld') },
+    body: form,
+  });
+  if (!res.ok) throw new Error('OCR service returned status ' + res.status);
+  const data = await res.json();
+  if (data.IsErroredOnProcessing) throw new Error(data.ErrorMessage || 'OCR processing error');
+  return (data.ParsedResults || []).map(r => r.ParsedText || '').join('\n');
+}
+
+function parseFlightText(text) {
+  const t = text.replace(/\r/g, ' ').replace(/\n/g, ' ');
+
+  // Flight number
+  const flightNos = [...t.matchAll(/\b([A-Z]{1,2}\d{3,4})\b/g)].map(m => m[1]);
+  const flightNo = flightNos[0] || '';
+
+  // Airline
+  let carrier = '';
+  for (const a of AIRLINES) {
+    if (t.toLowerCase().includes(a.toLowerCase())) { carrier = a; break; }
+  }
+  // Fallback: derive from flight number prefix
+  if (!carrier && flightNo) {
+    const prefix = flightNo.match(/^[A-Z]{2}/)?.[0];
+    const airlineMap = { QR:'Qatar Airways', SQ:'Singapore Airlines', EK:'Emirates', BA:'British Airways', MH:'Malaysia Airlines', CX:'Cathay Pacific', TK:'Turkish Airlines', EY:'Etihad', AF:'Air France', LH:'Lufthansa', KL:'KLM' };
+    carrier = airlineMap[prefix] || '';
+  }
+
+  // Date — try ISO first, then verbose
+  let date = '';
+  const isoDate = t.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+  if (isoDate) {
+    date = isoDate[1];
+  } else {
+    const verbDate = t.match(/\b(\d{1,2}[\s\-](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s\-,]*\d{4})\b/i);
+    if (verbDate) {
+      const d = new Date(verbDate[1]);
+      if (!isNaN(d)) date = d.toISOString().slice(0,10);
+    }
+  }
+
+  // Times — grab all HH:MM, first = dep, second = arr
+  const times = [...t.matchAll(/\b(\d{2}:\d{2})\b/g)].map(m => m[1]);
+  const dep = times[0] || '';
+  const arr = times[1] || '';
+
+  // Airports — IATA codes
+  const iatas = [...t.matchAll(/\b([A-Z]{3})\b/g)].map(m => m[1]).filter(c => IATA_AIRPORTS[c]);
+  const from = iatas[0] ? `${IATA_AIRPORTS[iatas[0]]} (${iatas[0]})` : '';
+  const to   = iatas[1] ? `${IATA_AIRPORTS[iatas[1]]} (${iatas[1]})` : '';
+
+  // Booking reference — 6 char alphanumeric near PNR/booking keywords
+  let ref = '';
+  const refMatch = t.match(/(?:PNR|booking ref(?:erence)?|confirmation|record locator)[:\s#]*([A-Z0-9]{5,8})/i);
+  if (refMatch) ref = refMatch[1];
+  else { const r = t.match(/\b([A-Z]{2}[A-Z0-9]{4,5})\b/); if (r && r[1] !== flightNo) ref = r[1]; }
+
+  // Cost
+  let cost = '', currency = '';
+  const costMatch = t.match(/(SGD|USD|GBP|EUR|AUD|MYR|THB|JPY|CNY|AED|INR|HKD|NZD|CAD)[\s]*([\d,]+\.?\d*)/i)
+    || t.match(/([\d,]+\.?\d*)\s*(SGD|USD|GBP|EUR|AUD|MYR|THB|JPY|CNY|AED|INR|HKD|NZD|CAD)/i);
+  if (costMatch) {
+    const num = costMatch[1].replace(/,/g,'');
+    const cur = costMatch[2];
+    if (isNaN(num)) { cost = cur; currency = num.toUpperCase(); }
+    else { cost = num; currency = cur.toUpperCase(); }
+  }
+
+  return { carrier, flightNo, date, dep, arr, from, to, ref, cost, currency };
+}
+
+function populatePreview(p) {
+  document.getElementById('ex-carrier').value  = p.carrier  || '';
+  document.getElementById('ex-flightNo').value = p.flightNo || '';
+  document.getElementById('ex-date').value     = p.date     || '';
+  document.getElementById('ex-ref').value      = p.ref      || '';
+  document.getElementById('ex-from').value     = p.from     || '';
+  document.getElementById('ex-dep').value      = p.dep      || '';
+  document.getElementById('ex-to').value       = p.to       || '';
+  document.getElementById('ex-arr').value      = p.arr      || '';
+  document.getElementById('ex-cost').value     = p.cost     || '';
+  document.getElementById('ex-currency').value = p.currency || '';
+}
+
+function confirmExtraction() {
+  const data = getData('flights');
+  const id   = ++nextId.flights;
+  data.push({
+    id,
+    carrier:  document.getElementById('ex-carrier').value.trim()  || '',
+    flightNo: document.getElementById('ex-flightNo').value.trim() || '',
+    date:     document.getElementById('ex-date').value            || '',
+    from:     document.getElementById('ex-from').value.trim()     || '',
+    dep:      document.getElementById('ex-dep').value.trim()      || '',
+    to:       document.getElementById('ex-to').value.trim()       || '',
+    arr:      document.getElementById('ex-arr').value.trim()      || '',
+    ref:      document.getElementById('ex-ref').value.trim()      || '',
+    cost:     document.getElementById('ex-cost').value.trim()     || '',
+    currency: document.getElementById('ex-currency').value.trim() || 'SGD',
+    status: 'tbc', notes: '',
+    travellers: [
+      { name:'Traveller 1', seat:'', meal:'', baggage:'', ffn:'' },
+      { name:'Traveller 2', seat:'', meal:'', baggage:'', ffn:'' },
+      { name:'Traveller 3', seat:'', meal:'', baggage:'', ffn:'' },
+    ],
+  });
+  save('flights', data);
+  renderFlights();
+  closeUploadModal();
+  setTimeout(() => {
+    const el = document.getElementById('fc-' + id);
+    if (el) { toggleBody('f' + id); el.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+  }, 100);
+}
+
+function showUploadStatus(msg) {
+  const el = document.getElementById('upload-status');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function showUploadError(msg) {
+  document.getElementById('upload-status').style.display = 'none';
+  document.getElementById('upload-dropzone').style.display = 'block';
+  const el = document.getElementById('upload-error');
+  el.textContent = msg;
+  el.style.display = 'block';
 }
 
 // ══════════════════════════════════════════════
