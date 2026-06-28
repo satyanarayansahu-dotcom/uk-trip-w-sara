@@ -13,9 +13,13 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // ── Shared trip data ───────────────────────────────────────────────────
-    // All authenticated users can read trip data.
-    // Only authenticated users can write (role enforcement is in JS).
+    // ── Trip meta + data ──────────────────────────────────────────────────
+    // trips/{tripId}         — meta document (name, countries, dates etc.)
+    // trips/{tripId}/data/*  — section data (flights, accom, etc.)
+    match /trips/{tripId} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null;
+    }
     match /trips/{tripId}/data/{section} {
       allow read:  if request.auth != null;
       allow write: if request.auth != null;
