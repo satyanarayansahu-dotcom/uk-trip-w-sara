@@ -300,29 +300,8 @@
 <script src="auth.js"></script>
 <script>
 // ── Read itinerary from Firestore (or fallback) ──
-const DEFAULT_ITIN = [
-  { date:'2026-07-03', location:'Singapore' },
-  { date:'2026-07-04', location:'London' },
-  { date:'2026-07-05', location:'London' },
-  { date:'2026-07-06', location:'London' },
-  { date:'2026-07-07', location:'London' },
-  { date:'2026-07-08', location:'Brighton' },
-  { date:'2026-07-10', location:'West Lulworth' },
-  { date:'2026-07-11', location:'West Lulworth' },
-  { date:'2026-07-12', location:'Bath' },
-  { date:'2026-07-13', location:'Bath' },
-  { date:'2026-07-14', location:'Bath' },
-  { date:'2026-07-15', location:'Bath' },
-  { date:'2026-07-16', location:'Bath' },
-  { date:'2026-07-17', location:'London' },
-  { date:'2026-07-18', location:'Singapore' },
-];
-const DEFAULT_ACCOM = [
-  { location:'London',       checkin:'2026-07-04', checkout:'2026-07-08' },
-  { location:'Brighton',     checkin:'2026-07-08', checkout:'2026-07-09' },
-  { location:'West Lulworth',checkin:'2026-07-10', checkout:'2026-07-12' },
-  { location:'Bath',         checkin:'2026-07-12', checkout:'2026-07-17' },
-];
+const DEFAULT_ITIN  = [];
+const DEFAULT_ACCOM = [];
 
 const HOME_STATE = {};
 
