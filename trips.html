@@ -44,32 +44,50 @@
     .section-title::before { content:''; width:3px; height:14px; border-radius:2px; background:var(--accent); }
 
     /* ── Trip cards ── */
-    .trips-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 16px; margin-bottom: 32px; }
+    .trips-grid { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
     .trip-card {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--r); padding: 20px; cursor: pointer;
-      transition: border-color .15s, transform .1s;
-      position: relative;
+      border-radius: var(--r); overflow: hidden;
+      transition: border-color .15s; position: relative;
     }
-    .trip-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-    .trip-card.active-trip { border-color: var(--accent); background: rgba(88,166,255,.06); }
-    .trip-card-name { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
-    .trip-card-countries { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
-    .trip-card-meta { display: flex; gap: 12px; flex-wrap: wrap; }
+    .trip-card:hover { border-color: var(--accent); }
+    .trip-card.active-trip { border-color: var(--accent); }
+    .trip-card-header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 18px 20px; cursor: pointer;
+    }
+    .trip-card-info { flex: 1; min-width: 0; }
+    .trip-card-name { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+    .trip-card-countries { font-size: 13px; color: var(--muted); }
+    .trip-card-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
     .trip-meta-chip {
       font-size: 11px; font-weight: 600; padding: 2px 8px;
       border-radius: 10px; background: var(--surface2); color: var(--muted);
     }
-    .trip-card-actions { display:flex; gap:8px; margin-top:12px; }
-    .edit-form {
-      background: var(--surface2); border: 1px solid var(--accent);
-      border-radius: var(--r); padding: 20px; margin-bottom: 16px;
-    }
     .active-badge {
-      position: absolute; top: 14px; right: 14px;
       font-size: 10px; font-weight: 700; padding: 2px 8px;
       border-radius: 10px; background: rgba(88,166,255,.15); color: var(--accent);
-      text-transform: uppercase; letter-spacing: .05em;
+      text-transform: uppercase; letter-spacing: .05em; flex-shrink: 0;
+    }
+    .trip-card-chevron { font-size: 11px; color: var(--muted); transition: transform .2s; flex-shrink: 0; }
+    .trip-card.open .trip-card-chevron { transform: rotate(180deg); }
+    .booking-sections { display: none; padding: 0 20px 18px; border-top: 1px solid var(--border); }
+    .trip-card.open .booking-sections { display: block; }
+    .booking-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 14px; }
+    .booking-tile {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 6px; padding: 14px 8px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--r); text-decoration: none; color: var(--text);
+      font-size: 12px; font-weight: 600; text-align: center; cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .booking-tile:hover { background: rgba(88,166,255,.08); border-color: var(--accent); color: var(--accent); }
+    .booking-tile-icon { font-size: 22px; }
+    .trip-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .edit-form {
+      background: var(--surface2); border: 1px solid var(--accent);
+      border-radius: var(--r); padding: 20px; margin-top: 14px;
     }
     .empty-state {
       text-align: center; padding: 48px 24px;
@@ -277,42 +295,81 @@
     }
     empty.style.display = 'none';
     const active = currentUser.activeTripId;
+    const SECTIONS = [
+      { key:'flights',   icon:'✈️',  label:'Flights' },
+      { key:'accom',     icon:'🏨',  label:'Accommodation' },
+      { key:'itinerary', icon:'🗓️',  label:'Itinerary' },
+      { key:'car',       icon:'🚗',  label:'Car Rental' },
+      { key:'contacts',  icon:'📞',  label:'Emergency Contacts' },
+      { key:'checklist', icon:'🎒',  label:'What to Pack' },
+      { key:'passports', icon:'🛂',  label:'Passports' },
+    ];
     grid.innerHTML = trips.map(t => `
       <div class="trip-card ${t.tripId === active ? 'active-trip' : ''}" id="card-${t.tripId}">
-        ${t.tripId === active ? '<div class="active-badge">Active</div>' : ''}
-        <div class="trip-card-name">${esc(t.name || 'Untitled trip')}</div>
-        <div class="trip-card-countries">📍 ${esc(t.countries || '—')}</div>
-        <div class="trip-card-meta">
-          ${t.startDate ? `<span class="trip-meta-chip">✈ ${fmtDate(t.startDate)}</span>` : ''}
-          ${t.endDate   ? `<span class="trip-meta-chip">🏠 ${fmtDate(t.endDate)}</span>`   : ''}
-          ${t.travellers ? `<span class="trip-meta-chip">👥 ${t.travellers} traveller${t.travellers > 1 ? 's' : ''}</span>` : ''}
+        <div class="trip-card-header" onclick="toggleTrip('${t.tripId}')">
+          <div class="trip-card-info">
+            <div class="trip-card-name">${esc(t.name || 'Untitled trip')}</div>
+            <div class="trip-card-countries">📍 ${esc(t.countries || '—')}</div>
+            <div class="trip-card-meta">
+              ${t.startDate  ? `<span class="trip-meta-chip">✈ ${fmtDate(t.startDate)}</span>` : ''}
+              ${t.endDate    ? `<span class="trip-meta-chip">🏠 ${fmtDate(t.endDate)}</span>`   : ''}
+              ${t.travellers ? `<span class="trip-meta-chip">👥 ${t.travellers} traveller${t.travellers > 1 ? 's' : ''}</span>` : ''}
+            </div>
+          </div>
+          ${t.tripId === active ? '<div class="active-badge">Active</div>' : ''}
+          <div class="trip-card-chevron">▼</div>
         </div>
-        <div class="trip-card-actions">
-          <button class="btn btn-ghost" onclick="event.stopPropagation();openEdit('${t.tripId}')">✏️ Edit</button>
-          <button class="btn btn-primary" onclick="event.stopPropagation();switchTrip('${t.tripId}')">Open →</button>
-        </div>
-      </div>
-      <div class="edit-form" id="edit-${t.tripId}" style="display:none">
-        <div style="font-size:13px;font-weight:700;margin-bottom:14px;color:var(--accent)">Edit trip</div>
-        <div class="form-grid">
-          <div class="form-group full"><label>Trip name</label><input type="text" id="edit-name-${t.tripId}" value="${esc(t.name||'')}" maxlength="80"/></div>
-          <div class="form-group full"><label>Countries / destinations</label><input type="text" id="edit-countries-${t.tripId}" value="${esc(t.countries||'')}"/></div>
-          <div class="form-group"><label>Start date</label><input type="date" id="edit-start-${t.tripId}" value="${t.startDate||''}"/></div>
-          <div class="form-group"><label>End date</label><input type="date" id="edit-end-${t.tripId}" value="${t.endDate||''}"/></div>
-          <div class="form-group"><label>Travellers</label><input type="number" id="edit-travellers-${t.tripId}" value="${t.travellers||''}" min="1" max="50"/></div>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-primary" onclick="saveEdit('${t.tripId}')">Save changes</button>
-          <button class="btn btn-ghost"   onclick="closeEdit('${t.tripId}')">Cancel</button>
+        <div class="booking-sections">
+          <div class="booking-grid">
+            ${SECTIONS.map(s => `
+              <div class="booking-tile" onclick="goToSection('${t.tripId}','${s.key}')">
+                <div class="booking-tile-icon">${s.icon}</div>
+                <div>${s.label}</div>
+              </div>`).join('')}
+          </div>
+          <div class="trip-actions">
+            <button class="btn btn-primary" onclick="goToSection('${t.tripId}','flights')">Open Trip →</button>
+            <button class="btn btn-ghost"   onclick="event.stopPropagation();openEdit('${t.tripId}')">✏️ Edit trip</button>
+          </div>
+          <div class="edit-form" id="edit-${t.tripId}" style="display:none">
+            <div style="font-size:13px;font-weight:700;margin-bottom:14px;color:var(--accent)">Edit trip details</div>
+            <div class="form-grid">
+              <div class="form-group full"><label>Trip name</label><input type="text" id="edit-name-${t.tripId}" value="${esc(t.name||'')}" maxlength="80"/></div>
+              <div class="form-group full"><label>Countries / destinations</label><input type="text" id="edit-countries-${t.tripId}" value="${esc(t.countries||'')}"/></div>
+              <div class="form-group"><label>Start date</label><input type="date" id="edit-start-${t.tripId}" value="${t.startDate||''}"/></div>
+              <div class="form-group"><label>End date</label><input type="date" id="edit-end-${t.tripId}" value="${t.endDate||''}"/></div>
+              <div class="form-group"><label>Travellers</label><input type="number" id="edit-travellers-${t.tripId}" value="${t.travellers||''}" min="1" max="50"/></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="saveEdit('${t.tripId}')">Save changes</button>
+              <button class="btn btn-ghost"   onclick="closeEdit('${t.tripId}')">Cancel</button>
+            </div>
+          </div>
         </div>
       </div>`).join('');
+
+    // Auto-expand active trip
+    if (active) {
+      const card = document.getElementById('card-' + active);
+      if (card) card.classList.add('open');
+    }
+  }
+
+  function toggleTrip(tripId) {
+    const card = document.getElementById('card-' + tripId);
+    card.classList.toggle('open');
+  }
+
+  async function goToSection(tripId, section) {
+    await Auth.setActiveTrip(tripId);
+    window.location.href = 'itinerary.html#' + section;
+  }
   }
 
   async function switchTrip(tripId) {
     await Auth.setActiveTrip(tripId);
     currentUser = Auth.getCurrentUser();
     await renderTrips();
-    setTimeout(() => window.location.href = 'home.html', 300);
   }
 
   function openEdit(tripId) {

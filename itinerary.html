@@ -628,6 +628,26 @@ function switchSection(id, icon, label, el) {
   el.classList.add('active');
 }
 
+// Handle deep-link from trips.html (e.g. itinerary.html#flights)
+(function() {
+  const HASH_MAP = {
+    flights:   ['✈',  'Flights',            'flights'],
+    passports: ['🛂', 'Passports',          'passports'],
+    accom:     ['🏨', 'Accommodation',      'accom'],
+    car:       ['🚗', 'Car Rental',         'car'],
+    itinerary: ['🗓', 'Itinerary',          'itinerary'],
+    checklist: ['✅', 'Packing List',       'checklist'],
+    contacts:  ['📞', 'Contacts',           'contacts'],
+    access:    ['👥', 'Access',             'access'],
+  };
+  const hash = window.location.hash.replace('#', '');
+  if (hash && HASH_MAP[hash]) {
+    const [icon, label, id] = HASH_MAP[hash];
+    const el = document.querySelector(`[data-section="${id}"]`);
+    if (el) switchSection(id, icon, label, el);
+  }
+})();
+
 // ══════════════════════════════════════════════
 //  TOAST
 // ══════════════════════════════════════════════
