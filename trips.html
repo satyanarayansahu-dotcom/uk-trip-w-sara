@@ -60,6 +60,11 @@
       font-size: 11px; font-weight: 600; padding: 2px 8px;
       border-radius: 10px; background: var(--surface2); color: var(--muted);
     }
+    .trip-card-actions { display:flex; gap:8px; margin-top:12px; }
+    .edit-form {
+      background: var(--surface2); border: 1px solid var(--accent);
+      border-radius: var(--r); padding: 20px; margin-bottom: 16px;
+    }
     .active-badge {
       position: absolute; top: 14px; right: 14px;
       font-size: 10px; font-weight: 700; padding: 2px 8px;
@@ -273,7 +278,7 @@
     empty.style.display = 'none';
     const active = currentUser.activeTripId;
     grid.innerHTML = trips.map(t => `
-      <div class="trip-card ${t.tripId === active ? 'active-trip' : ''}" onclick="switchTrip('${t.tripId}')">
+      <div class="trip-card ${t.tripId === active ? 'active-trip' : ''}" id="card-${t.tripId}">
         ${t.tripId === active ? '<div class="active-badge">Active</div>' : ''}
         <div class="trip-card-name">${esc(t.name || 'Untitled trip')}</div>
         <div class="trip-card-countries">📍 ${esc(t.countries || '—')}</div>
@@ -281,6 +286,24 @@
           ${t.startDate ? `<span class="trip-meta-chip">✈ ${fmtDate(t.startDate)}</span>` : ''}
           ${t.endDate   ? `<span class="trip-meta-chip">🏠 ${fmtDate(t.endDate)}</span>`   : ''}
           ${t.travellers ? `<span class="trip-meta-chip">👥 ${t.travellers} traveller${t.travellers > 1 ? 's' : ''}</span>` : ''}
+        </div>
+        <div class="trip-card-actions">
+          <button class="btn btn-ghost" onclick="event.stopPropagation();openEdit('${t.tripId}')">✏️ Edit</button>
+          <button class="btn btn-primary" onclick="event.stopPropagation();switchTrip('${t.tripId}')">Open →</button>
+        </div>
+      </div>
+      <div class="edit-form" id="edit-${t.tripId}" style="display:none">
+        <div style="font-size:13px;font-weight:700;margin-bottom:14px;color:var(--accent)">Edit trip</div>
+        <div class="form-grid">
+          <div class="form-group full"><label>Trip name</label><input type="text" id="edit-name-${t.tripId}" value="${esc(t.name||'')}" maxlength="80"/></div>
+          <div class="form-group full"><label>Countries / destinations</label><input type="text" id="edit-countries-${t.tripId}" value="${esc(t.countries||'')}"/></div>
+          <div class="form-group"><label>Start date</label><input type="date" id="edit-start-${t.tripId}" value="${t.startDate||''}"/></div>
+          <div class="form-group"><label>End date</label><input type="date" id="edit-end-${t.tripId}" value="${t.endDate||''}"/></div>
+          <div class="form-group"><label>Travellers</label><input type="number" id="edit-travellers-${t.tripId}" value="${t.travellers||''}" min="1" max="50"/></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveEdit('${t.tripId}')">Save changes</button>
+          <button class="btn btn-ghost"   onclick="closeEdit('${t.tripId}')">Cancel</button>
         </div>
       </div>`).join('');
   }
@@ -290,6 +313,35 @@
     currentUser = Auth.getCurrentUser();
     await renderTrips();
     setTimeout(() => window.location.href = 'home.html', 300);
+  }
+
+  function openEdit(tripId) {
+    document.querySelectorAll('.edit-form').forEach(f => f.style.display = 'none');
+    document.querySelectorAll('.trip-card').forEach(c => c.style.opacity = '1');
+    document.getElementById('edit-' + tripId).style.display = 'block';
+    document.getElementById('card-' + tripId).style.opacity = '0.4';
+  }
+
+  function closeEdit(tripId) {
+    document.getElementById('edit-' + tripId).style.display = 'none';
+    document.getElementById('card-' + tripId).style.opacity = '1';
+  }
+
+  async function saveEdit(tripId) {
+    const name       = document.getElementById('edit-name-' + tripId).value.trim();
+    const countries  = document.getElementById('edit-countries-' + tripId).value.trim();
+    const startDate  = document.getElementById('edit-start-' + tripId).value;
+    const endDate    = document.getElementById('edit-end-' + tripId).value;
+    const travellers = parseInt(document.getElementById('edit-travellers-' + tripId).value) || 1;
+
+    if (!name) { alert('Please enter a trip name.'); return; }
+
+    const existing = await FireDB.loadTripMeta(tripId);
+    await db.collection('trips').doc(tripId).set({
+      meta: { ...existing, name, countries, startDate, endDate, travellers }
+    }, { merge: true });
+
+    await renderTrips();
   }
 
   async function createTrip() {
