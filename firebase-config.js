@@ -35,36 +35,59 @@ const EMAILJS_SERVICE_ID  = 'service_607fd7k';
 const EMAILJS_TEMPLATE_ID = 'template_2zj8iud';
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  FireDB — drop-in replacement for Auth.getData / Auth.saveData
-//  All itinerary data lives under:  trips/{TRIP_ID}/data/{section}
-//  Users live under:  users/{uid}
+//  FireDB — multi-trip data layer
+//  Trip data:  trips/{tripId}/data/{section}
+//  Trip meta:  trips/{tripId}/meta
+//  Users:      users/{uid}
 // ─────────────────────────────────────────────────────────────────────────────
-const TRIP_ID = 'uk-road-trip-2026'; // shared trip document — same for all users
 
 const FireDB = {
   // ── Write a section (flights, accom, etc.) ────────────────────────────────
-  async save(section, value) {
-    await db.collection('trips').doc(TRIP_ID)
+  async save(tripId, section, value) {
+    if (!tripId) throw new Error('No active trip.');
+    await db.collection('trips').doc(tripId)
       .collection('data').doc(section)
       .set({ value: JSON.stringify(value), updatedAt: new Date().toISOString() });
   },
 
   // ── Read a section ────────────────────────────────────────────────────────
-  async load(section, fallback) {
-    const snap = await db.collection('trips').doc(TRIP_ID)
+  async load(tripId, section, fallback) {
+    if (!tripId) return fallback ?? null;
+    const snap = await db.collection('trips').doc(tripId)
       .collection('data').doc(section).get();
     if (!snap.exists) return fallback ?? null;
     try { return JSON.parse(snap.data().value); } catch { return fallback ?? null; }
   },
 
   // ── Real-time listener for a section ─────────────────────────────────────
-  // Returns an unsubscribe function.  callback(data) fires on every change.
-  listen(section, fallback, callback) {
-    return db.collection('trips').doc(TRIP_ID)
+  listen(tripId, section, fallback, callback) {
+    if (!tripId) { callback(fallback ?? null); return () => {}; }
+    return db.collection('trips').doc(tripId)
       .collection('data').doc(section)
       .onSnapshot(snap => {
         if (!snap.exists) { callback(fallback ?? null); return; }
         try { callback(JSON.parse(snap.data().value)); } catch { callback(fallback ?? null); }
       });
+  },
+
+  // ── Create a new trip ─────────────────────────────────────────────────────
+  async createTrip(meta) {
+    const ref = db.collection('trips').doc();
+    await ref.set({ meta: { ...meta, createdAt: new Date().toISOString() } });
+    return ref.id;
+  },
+
+  // ── Load trip metadata ────────────────────────────────────────────────────
+  async loadTripMeta(tripId) {
+    const snap = await db.collection('trips').doc(tripId).get();
+    if (!snap.exists) return null;
+    return { tripId, ...snap.data().meta };
+  },
+
+  // ── List all trips for a user (by tripIds array) ──────────────────────────
+  async listUserTrips(tripIds) {
+    if (!tripIds || !tripIds.length) return [];
+    const results = await Promise.all(tripIds.map(id => FireDB.loadTripMeta(id)));
+    return results.filter(Boolean);
   },
 };

@@ -115,6 +115,8 @@
       role:         isFirst ? 'admin' : 'viewer',
       createdAt:    new Date().toISOString(),
       grantedBy:    null,
+      activeTripId: null,
+      tripIds:      [],
     };
 
     await saveUserDoc(uid, userDoc);
@@ -159,6 +161,8 @@
       role,
       createdAt:    new Date().toISOString(),
       grantedBy:    admin.uid,
+      activeTripId: admin.activeTripId || null,
+      tripIds:      admin.activeTripId ? [admin.activeTripId] : [],
     };
     await saveUserDoc(uid, userDoc);
 
@@ -214,13 +218,36 @@
   }
 
 
-  // These are now thin wrappers over FireDB so call sites in itinerary.html
-  // need no change.
+  // ── Trip helpers ──────────────────────────────────────────────────────────
+  function getActiveTrip() {
+    return _currentUser ? (_currentUser.activeTripId || null) : null;
+  }
+
+  async function setActiveTrip(tripId) {
+    const user = await refreshCurrentUser();
+    if (!user) throw new Error('Not logged in.');
+    const tripIds = user.tripIds || [];
+    if (tripId && !tripIds.includes(tripId)) tripIds.push(tripId);
+    await saveUserDoc(user.uid, { activeTripId: tripId, tripIds });
+    _currentUser = { ..._currentUser, activeTripId: tripId, tripIds };
+  }
+
+  async function createTrip(name, countries, startDate, endDate, travellers) {
+    const user = await refreshCurrentUser();
+    if (!user) throw new Error('Not logged in.');
+    const tripId = await FireDB.createTrip({ name, countries, startDate, endDate, travellers, createdBy: user.uid });
+    const tripIds = [...(user.tripIds || []), tripId];
+    await saveUserDoc(user.uid, { activeTripId: tripId, tripIds });
+    _currentUser = { ..._currentUser, activeTripId: tripId, tripIds };
+    return tripId;
+  }
+
+  // ── Data wrappers — pass active trip through to FireDB ────────────────────
   async function getData(key, fallback) {
-    return FireDB.load(key, fallback);
+    return FireDB.load(getActiveTrip(), key, fallback);
   }
   async function saveData(key, val) {
-    return FireDB.save(key, val);
+    return FireDB.save(getActiveTrip(), key, val);
   }
 
   // Legacy no-op stubs kept so old call sites don't break.
@@ -258,6 +285,7 @@
           <div style="font-size:11px;color:var(--muted,#8b949e);margin-top:1px">${u.email||''}</div>
         </div>
         ${u.role === 'admin' ? '<a class="auth-menu-item" href="itinerary.html#access">👥 Manage Access</a>' : ''}
+        <a class="auth-menu-item" href="trips.html">🗺️ My Trips</a>
         <a class="auth-menu-item" href="profile.html">👤 My Profile</a>
         <div class="auth-menu-item auth-signout" onclick="Auth.logout()">🚪 Sign out</div>
       </div>`;
@@ -333,6 +361,7 @@
     getCurrentUser, refreshCurrentUser, requireAuth,
     canEdit, isAdmin,
     storageKey, getData, saveData,
+    getActiveTrip, setActiveTrip, createTrip,
     grantAccess, revokeAccess, updateRole,
     updateProfile, changePassword,
     loadUsers, loadUsersAsync,

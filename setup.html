@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Set up your trip · Road Trip Planner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      color: #fff;
+    }
+    .bg {
+      position: fixed; inset: 0; z-index: 0;
+      background-image: url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1920&auto=format&fit=crop&q=85');
+      background-size: cover; background-position: center 40%;
+    }
+    .bg-overlay {
+      position: fixed; inset: 0; z-index: 1;
+      background: linear-gradient(160deg, rgba(5,12,28,0.82) 0%, rgba(5,12,28,0.55) 50%, rgba(5,12,28,0.85) 100%);
+    }
+    .card {
+      position: relative; z-index: 2;
+      width: 100%; max-width: 480px;
+      backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 20px;
+      padding: 40px 36px;
+      box-shadow: 0 16px 56px rgba(0,0,0,0.45);
+    }
+
+    /* ── Progress dots ── */
+    .steps {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; margin-bottom: 32px;
+    }
+    .step-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      transition: background .2s, width .2s;
+    }
+    .step-dot.active { background: #58a6ff; width: 24px; border-radius: 4px; }
+    .step-dot.done   { background: #3fb950; }
+
+    /* ── Step panels ── */
+    .step { display: none; }
+    .step.active { display: block; }
+
+    .step-icon { font-size: 36px; text-align: center; margin-bottom: 12px; }
+    h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; text-align: center; }
+    .sub { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 28px; text-align: center; }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: rgba(255,255,255,0.60); margin-bottom: 6px; }
+    input, textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      color: #fff; font-size: 14px;
+      padding: 11px 14px;
+      font-family: inherit;
+      transition: border-color .15s, background .15s;
+      outline: none;
+      resize: none;
+    }
+    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.30); }
+    input:focus, textarea:focus { border-color: #58a6ff; background: rgba(255,255,255,0.14); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .btn-primary {
+      width: 100%; padding: 13px;
+      background: #58a6ff; color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      margin-top: 8px;
+    }
+    .btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .btn-ghost {
+      width: 100%; padding: 11px;
+      background: transparent; color: rgba(255,255,255,0.45);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+      font-size: 13px; cursor: pointer;
+      transition: color .15s, border-color .15s;
+      margin-top: 8px;
+    }
+    .btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+
+    /* ── Summary step ── */
+    .summary-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.10);
+      font-size: 13px;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-label { color: rgba(255,255,255,0.50); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+    .summary-value { font-weight: 600; text-align: right; max-width: 60%; }
+
+    .error-msg {
+      background: rgba(248,81,73,.15); border: 1px solid rgba(248,81,73,.35);
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 13px; color: #f85149; margin-bottom: 16px; display: none;
+    }
+    .error-msg.show { display: block; }
+  </style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="bg-overlay"></div>
+
+<div class="card">
+  <!-- Progress dots -->
+  <div class="steps">
+    <div class="step-dot active" id="dot-1"></div>
+    <div class="step-dot" id="dot-2"></div>
+    <div class="step-dot" id="dot-3"></div>
+  </div>
+
+  <div class="error-msg" id="error-msg"></div>
+
+  <!-- Step 1: Trip name + countries -->
+  <div class="step active" id="step-1">
+    <div class="step-icon">✈️</div>
+    <h2>Let's plan your trip!</h2>
+    <div class="sub">Start by giving your trip a name and choosing your destinations.</div>
+    <div class="form-group">
+      <label>Trip name</label>
+      <input type="text" id="trip-name" placeholder="e.g. Europe Summer 2026" maxlength="80"/>
+    </div>
+    <div class="form-group">
+      <label>Countries / destinations</label>
+      <input type="text" id="trip-countries" placeholder="e.g. France, Italy, Spain"/>
+    </div>
+    <button class="btn-primary" onclick="goStep(2)">Next →</button>
+    <button class="btn-ghost" onclick="skip()">Skip — set up later</button>
+  </div>
+
+  <!-- Step 2: Dates + travellers -->
+  <div class="step" id="step-2">
+    <div class="step-icon">📅</div>
+    <h2>When and who?</h2>
+    <div class="sub">Set the travel dates and number of travellers.</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start date</label>
+        <input type="date" id="trip-start"/>
+      </div>
+      <div class="form-group">
+        <label>End date</label>
+        <input type="date" id="trip-end"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Number of travellers</label>
+      <input type="number" id="trip-travellers" placeholder="e.g. 3" min="1" max="50"/>
+    </div>
+    <button class="btn-primary" onclick="goStep(3)">Next →</button>
+    <button class="btn-ghost" onclick="goStep(1)">← Back</button>
+  </div>
+
+  <!-- Step 3: Summary + create -->
+  <div class="step" id="step-3">
+    <div class="step-icon">🗺️</div>
+    <h2>Ready to go!</h2>
+    <div class="sub">Here's your trip summary. You can edit everything later.</div>
+    <div id="summary" style="margin-bottom:24px"></div>
+    <button class="btn-primary" id="create-btn" onclick="createTrip()">Create my trip 🚀</button>
+    <button class="btn-ghost" onclick="goStep(2)">← Back</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="auth.js"></script>
+<script>
+  Auth.injectChipStyles();
+  (async () => { await Auth.requireAuth(); })();
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+  }
+
+  function setDots(step) {
+    [1,2,3].forEach(i => {
+      const dot = document.getElementById('dot-' + i);
+      dot.className = 'step-dot' + (i === step ? ' active' : i < step ? ' done' : '');
+    });
+  }
+
+  function goStep(n) {
+    const errEl = document.getElementById('error-msg');
+    errEl.classList.remove('show');
+
+    if (n === 2) {
+      const name      = document.getElementById('trip-name').value.trim();
+      const countries = document.getElementById('trip-countries').value.trim();
+      if (!name)      { errEl.textContent = 'Please enter a trip name.';      errEl.classList.add('show'); return; }
+      if (!countries) { errEl.textContent = 'Please enter at least one destination.'; errEl.classList.add('show'); return; }
+    }
+    if (n === 3) {
+      const start = document.getElementById('trip-start').value;
+      const end   = document.getElementById('trip-end').value;
+      if (!start) { errEl.textContent = 'Please pick a start date.'; errEl.classList.add('show'); return; }
+      if (!end)   { errEl.textContent = 'Please pick an end date.';  errEl.classList.add('show'); return; }
+      if (end < start) { errEl.textContent = 'End date must be after start date.'; errEl.classList.add('show'); return; }
+      buildSummary();
+    }
+
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-' + n).classList.add('active');
+    setDots(n);
+  }
+
+  function buildSummary() {
+    const rows = [
+      { label: 'Trip name',     value: document.getElementById('trip-name').value.trim() },
+      { label: 'Destinations',  value: document.getElementById('trip-countries').value.trim() },
+      { label: 'Start date',    value: fmtDate(document.getElementById('trip-start').value) },
+      { label: 'End date',      value: fmtDate(document.getElementById('trip-end').value) },
+      { label: 'Travellers',    value: document.getElementById('trip-travellers').value || '—' },
+    ];
+    document.getElementById('summary').innerHTML = rows.map(r => `
+      <div class="summary-row">
+        <span class="summary-label">${r.label}</span>
+        <span class="summary-value">${r.value}</span>
+      </div>`).join('');
+  }
+
+  async function createTrip() {
+    const btn  = document.getElementById('create-btn');
+    const errEl = document.getElementById('error-msg');
+    errEl.classList.remove('show');
+    btn.disabled = true; btn.textContent = 'Creating…';
+    try {
+      await Auth.createTrip(
+        document.getElementById('trip-name').value.trim(),
+        document.getElementById('trip-countries').value.trim(),
+        document.getElementById('trip-start').value,
+        document.getElementById('trip-end').value,
+        parseInt(document.getElementById('trip-travellers').value) || 1,
+      );
+      window.location.href = 'home.html';
+    } catch(e) {
+      errEl.textContent = e.message; errEl.classList.add('show');
+      btn.disabled = false; btn.textContent = 'Create my trip 🚀';
+    }
+  }
+
+  function skip() { window.location.href = 'home.html'; }
+</script>
+</body>
+</html>

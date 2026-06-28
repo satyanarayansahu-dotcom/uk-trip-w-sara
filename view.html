@@ -536,7 +536,8 @@ function renderPacking() {
 // ── Init ──────────────────────────────────────
 const VIEW_SECTIONS = ['flights','accom','car','itinerary','checklist'];
 Promise.all(VIEW_SECTIONS.map(async k => {
-  const val = await FireDB.load(k, null);
+  const tripId = Auth.getActiveTrip();
+  const val = await FireDB.load(tripId, k, null);
   if (val) VIEW_STATE[k] = val;
 })).then(() => {
   renderKPIs();

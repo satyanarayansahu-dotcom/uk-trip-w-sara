@@ -191,7 +191,7 @@
 
     try {
       await Auth.register(name, email, password);
-      window.location.href = 'home.html';
+      window.location.href = 'setup.html';
     } catch (e) {
       errEl.textContent = e.message;
       errEl.classList.add('show');

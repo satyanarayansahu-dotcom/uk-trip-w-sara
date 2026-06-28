@@ -553,113 +553,16 @@
 <script src="auth.js"></script>
 <script>
 // ══════════════════════════════════════════════
-//  INITIAL DATA  (populated from Numbers file)
+//  INITIAL DATA  — empty templates for new trips
 // ══════════════════════════════════════════════
 const DEFAULTS = {
-  flights: [
-    { id: 1, carrier: 'Qatar Airways', flightNo: 'QR947', date: '2026-07-03', from: 'Singapore (T1)', dep: '19:30', to: 'Doha', arr: '22:00', ref: '1A/7CF6WM / QR/7CF6WM', cost: '4635', currency: 'SGD', status: 'confirmed', notes: 'Outbound leg 1',
-      travellers: [
-        { name: 'Traveller 1', seat: '', meal: '', baggage: '', ffn: '' },
-        { name: 'Traveller 2', seat: '', meal: '', baggage: '', ffn: '' },
-        { name: 'Traveller 3', seat: '', meal: '', baggage: '', ffn: '' },
-      ]},
-    { id: 2, carrier: 'Qatar Airways', flightNo: 'QR11',  date: '2026-07-04', from: 'Doha', dep: '01:10', to: 'London (Heathrow)', arr: '06:25', ref: '1A/7CF6WM / QR/7CF6WM', cost: '', currency: 'SGD', status: 'confirmed', notes: 'Outbound leg 2',
-      travellers: [
-        { name: 'Traveller 1', seat: '', meal: '', baggage: '', ffn: '' },
-        { name: 'Traveller 2', seat: '', meal: '', baggage: '', ffn: '' },
-        { name: 'Traveller 3', seat: '', meal: '', baggage: '', ffn: '' },
-      ]},
-    { id: 3, carrier: 'Qatar Airways', flightNo: 'QR12',  date: '2026-07-17', from: 'London (Heathrow T4)', dep: '19:25', to: 'Doha', arr: '04:10+1', ref: '', cost: '', currency: 'SGD', status: 'confirmed', notes: 'Return leg 1',
-      travellers: [
-        { name: 'Traveller 1', seat: '', meal: '', baggage: '', ffn: '' },
-        { name: 'Traveller 2', seat: '', meal: '', baggage: '', ffn: '' },
-        { name: 'Traveller 3', seat: '', meal: '', baggage: '', ffn: '' },
-      ]},
-    { id: 4, carrier: 'Qatar Airways', flightNo: 'QR944', date: '2026-07-18', from: 'Doha', dep: '08:05', to: 'Singapore (T1)', arr: '21:15', ref: '', cost: '', currency: 'SGD', status: 'confirmed', notes: 'Return leg 2',
-      travellers: [
-        { name: 'Traveller 1', seat: '', meal: '', baggage: '', ffn: '' },
-        { name: 'Traveller 2', seat: '', meal: '', baggage: '', ffn: '' },
-        { name: 'Traveller 3', seat: '', meal: '', baggage: '', ffn: '' },
-      ]},
-  ],
-  passports: [
-    { id: 1, name: '', relation: 'Self', nationality: '', passportNo: '', issueDate: '', expiryDate: '', dob: '', gender: '', placeOfBirth: '', issueCountry: '', visaRequired: 'No', visaStatus: '', notes: '' },
-    { id: 2, name: '', relation: 'Family', nationality: '', passportNo: '', issueDate: '', expiryDate: '', dob: '', gender: '', placeOfBirth: '', issueCountry: '', visaRequired: 'No', visaStatus: '', notes: '' },
-    { id: 3, name: '', relation: 'Family', nationality: '', passportNo: '', issueDate: '', expiryDate: '', dob: '', gender: '', placeOfBirth: '', issueCountry: '', visaRequired: 'No', visaStatus: '', notes: '' },
-  ],
-  accom: [
-    { id: 1, location: 'London', name: '2 Bedroom Serviced Apartment, Barbican & Old Street', checkin: '2026-07-04', checkout: '2026-07-08', concierge: '', phone: '+44 7958 533059', address: '58 Pear Tree Street, Islington, London, EC1V 3SB, United Kingdom', confNo: '5688554940', cost: '2109', currency: 'GBP', status: 'confirmed', notes: 'Booking.com' },
-    { id: 2, location: 'Brighton', name: 'Four Points Flex by Sheraton Brighton Seafront (Marriott)', checkin: '2026-07-08', checkout: '2026-07-09', concierge: '', phone: '+44-1273-820854', address: '139-141 Kings Road, Brighton, England BN1 2NA', confNo: '99571873', cost: '', currency: 'GBP', status: 'confirmed', notes: '' },
-    { id: 4, location: 'West Lulworth', name: 'Jurassic Bliss – stylish static caravan, partial sea view at Durdle Door', checkin: '2026-07-10', checkout: '2026-07-12', concierge: '', phone: '+44 7720 255619', address: 'Durdle Door Caravan Park, Wareham, BH20 5PU, United Kingdom', confNo: '5388842126', cost: '783', currency: 'GBP', status: 'confirmed', notes: 'Booking.com' },
-    { id: 5, location: 'Bath', name: 'TBC', checkin: '2026-07-12', checkout: '2026-07-17', concierge: '', phone: '', address: '', confNo: '', cost: '1534', currency: 'GBP', status: 'pending', notes: '' },
-  ],
-  car: [
-    { id: 1, company: 'SIXT', pickup: 'London Victoria Station', pickupDate: '2026-07-08', dropoff: 'London (TBC)', dropoffDate: '2026-07-17', confNo: '', cost: '1755', currency: 'GBP', status: 'confirmed', notes: '' },
-  ],
-  itinerary: [
-    { id: 1, date: '2026-07-03', location: 'Singapore → Doha', type: 'Travel', activity: 'Depart Singapore Changi T1 on QR947 at 19:30', notes: '' },
-    { id: 2, date: '2026-07-04', location: 'London', type: 'Arrive', activity: 'Arrive Heathrow 06:25 via QR11. Check in to Barbican apartment.', notes: '' },
-    { id: 3, date: '2026-07-05', location: 'London', type: 'Explore', activity: 'Explore London', notes: '' },
-    { id: 4, date: '2026-07-06', location: 'London', type: 'Explore', activity: 'Explore London', notes: '' },
-    { id: 5, date: '2026-07-07', location: 'London', type: 'Explore', activity: 'Explore London', notes: '' },
-    { id: 7, date: '2026-07-08', location: 'Brighton', type: 'Drive', activity: 'London → Brighton drive. Brighton Beach, seafront promenade. Pick up SIXT car.', notes: 'Best sunset at Seven Sisters' },
-    { id: 8, date: '2026-07-10', location: 'West Lulworth', type: 'Drive', activity: 'Brighton → Jurassic Coast. Durdle Door, Lulworth Cove, sunset at cliffs.', notes: '' },
-    { id: 9, date: '2026-07-11', location: 'West Lulworth', type: 'Explore', activity: 'Full day Jurassic Coast exploration. Stair Hole, coastal walks, optional boat trip.', notes: '' },
-    { id: 10, date: '2026-07-12', location: 'Bath', type: 'Drive', activity: 'Jurassic Coast → Bath. Corfe Castle, Stourhead Gardens, Bradford-on-Avon optional stops.', notes: '' },
-    { id: 11, date: '2026-07-13', location: 'Bath', type: 'Explore', activity: 'Explore Bath – Roman Baths, Georgian architecture', notes: '' },
-    { id: 12, date: '2026-07-14', location: 'Bath', type: 'Explore', activity: 'Explore Bath', notes: '' },
-    { id: 13, date: '2026-07-15', location: 'Bath', type: 'Explore', activity: 'Explore Bath', notes: '' },
-    { id: 14, date: '2026-07-16', location: 'Bath', type: 'Explore', activity: 'Explore Bath', notes: '' },
-    { id: 15, date: '2026-07-17', location: 'London Heathrow', type: 'Travel', activity: 'Bath → London Heathrow. Depart LHR T4 on QR12 at 19:25.', notes: '' },
-    { id: 16, date: '2026-07-18', location: 'Singapore', type: 'Arrive', activity: 'Arrive Singapore Changi T1 21:15 via QR944.', notes: '' },
-  ],
-  checklist: [
-    { category: 'Clothes', items: [
-      { text: 'Bathing Suits', qty: '4', checked: false },
-      { text: 'T-shirts', qty: '5', checked: false },
-      { text: 'Jeans / trousers', qty: '2', checked: false },
-      { text: 'Warm jacket / fleece', qty: '1', checked: false },
-      { text: 'Light waterproof', qty: '1', checked: false },
-      { text: 'Comfortable walking shoes', qty: '1', checked: false },
-      { text: 'Smart casual outfit', qty: '1', checked: false },
-      { text: 'Socks & underwear', qty: '7', checked: false },
-      { text: 'Pyjamas', qty: '1', checked: false },
-      { text: 'Sun hat', qty: '1', checked: false },
-      { text: 'Sunglasses', qty: '1', checked: false },
-      { text: 'Scarf', qty: '1', checked: false },
-    ]},
-    { category: 'Toiletries', items: [
-      { text: 'Sunscreen', qty: '1', checked: false },
-      { text: 'Shampoo & conditioner', qty: '1', checked: false },
-      { text: 'Body wash', qty: '1', checked: false },
-      { text: 'Toothbrush & paste', qty: '1', checked: false },
-      { text: 'Deodorant', qty: '1', checked: false },
-      { text: 'Moisturiser', qty: '1', checked: false },
-      { text: 'Lip balm', qty: '1', checked: false },
-      { text: 'Razor', qty: '1', checked: false },
-      { text: 'First aid kit', qty: '1', checked: false },
-      { text: 'Prescription medication', qty: '', checked: false },
-      { text: 'Paracetamol / ibuprofen', qty: '1', checked: false },
-    ]},
-    { category: 'Gadgets', items: [
-      { text: 'Phone charger', qty: '1', checked: false },
-      { text: 'Universal travel adaptor (UK type G)', qty: '1', checked: false },
-      { text: 'Power bank', qty: '1', checked: false },
-      { text: 'Camera + memory cards', qty: '1', checked: false },
-      { text: 'Laptop / tablet + charger', qty: '1', checked: false },
-      { text: 'Earphones / AirPods', qty: '1', checked: false },
-      { text: 'Car phone mount', qty: '1', checked: false },
-      { text: 'USB-C cables', qty: '2', checked: false },
-      { text: 'Portable speaker', qty: '1', checked: false },
-      { text: 'SIM card / roaming plan', qty: '', checked: false },
-    ]},
-  ],
-  contacts: [
-    { id: 1, name: 'Qatar Airways Reservations', phone: '', email: '', notes: '1A/7CF6WM · QR/7CF6WM' },
-    { id: 2, name: 'London Apartment Concierge', phone: '+44 7958 533059', email: '', notes: '58 Pear Tree St, EC1V 3SB' },
-    { id: 3, name: 'Durdle Door Caravan Park', phone: '+44 7720 255619', email: '', notes: 'Conf: 5388842126' },
-    { id: 4, name: 'Brighton Sheraton', phone: '+44-1273-820854', email: '', notes: 'Conf: 99571873' },
-  ],
+  flights:   [],
+  passports: [],
+  accom:     [],
+  car:       [],
+  itinerary: [],
+  checklist: [],
+  contacts:  [],
 };
 
 // ══════════════════════════════════════════════

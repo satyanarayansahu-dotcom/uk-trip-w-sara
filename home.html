@@ -327,9 +327,11 @@ const DEFAULT_ACCOM = [
 const HOME_STATE = {};
 
 async function loadHomeData() {
+  const tripId = Auth.getActiveTrip();
+  if (!tripId) return;
   const [itin, accom] = await Promise.all([
-    FireDB.load('itinerary', null),
-    FireDB.load('accom', null),
+    FireDB.load(tripId, 'itinerary', null),
+    FireDB.load(tripId, 'accom', null),
   ]);
   if (itin)  HOME_STATE.itinerary = itin;
   if (accom) HOME_STATE.accom     = accom;

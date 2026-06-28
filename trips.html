@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Trips · Road Trip Planner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh; background: #0d1117; color: #e6edf3;
+    }
+    :root {
+      --bg:#0d1117; --surface:#161b22; --surface2:#21262d;
+      --border:#30363d; --accent:#58a6ff; --green:#3fb950;
+      --red:#f85149; --muted:#8b949e; --r:10px;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 24px; display: flex; align-items: center; gap: 16px; height: 56px;
+    }
+    .topbar-title { font-weight: 800; font-size: 16px; flex: 1; }
+    .topbar-title span { color: var(--accent); }
+    .topbar-back { font-size: 13px; color: var(--muted); text-decoration: none; transition: color .15s; }
+    .topbar-back:hover { color: var(--accent); }
+    #user-chip-anchor { margin-left: auto; }
+
+    /* ── Page ── */
+    .page { padding: 32px 24px; max-width: 800px; margin: 0 auto; }
+
+    /* ── Section header ── */
+    .section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::before { content:''; width:3px; height:14px; border-radius:2px; background:var(--accent); }
+
+    /* ── Trip cards ── */
+    .trips-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 16px; margin-bottom: 32px; }
+    .trip-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 20px; cursor: pointer;
+      transition: border-color .15s, transform .1s;
+      position: relative;
+    }
+    .trip-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .trip-card.active-trip { border-color: var(--accent); background: rgba(88,166,255,.06); }
+    .trip-card-name { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+    .trip-card-countries { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+    .trip-card-meta { display: flex; gap: 12px; flex-wrap: wrap; }
+    .trip-meta-chip {
+      font-size: 11px; font-weight: 600; padding: 2px 8px;
+      border-radius: 10px; background: var(--surface2); color: var(--muted);
+    }
+    .active-badge {
+      position: absolute; top: 14px; right: 14px;
+      font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 10px; background: rgba(88,166,255,.15); color: var(--accent);
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    .empty-state {
+      text-align: center; padding: 48px 24px;
+      color: var(--muted); font-size: 14px;
+    }
+    .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+    /* ── New Trip form ── */
+    .new-trip-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 24px; margin-bottom: 16px;
+      display: none;
+    }
+    .new-trip-card.open { display: block; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-group { margin-bottom: 0; }
+    .form-group.full { grid-column: span 2; }
+    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 6px; }
+    input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--r); color: #e6edf3; font-size: 14px;
+      padding: 10px 14px; font-family: inherit;
+      transition: border-color .15s; outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--r); border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity .15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: .88; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-ghost { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: #e6edf3; }
+    .btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+    .error-msg {
+      background: rgba(248,81,73,.12); border: 1px solid rgba(248,81,73,.3);
+      border-radius: 8px; padding: 10px 14px; font-size: 13px;
+      color: var(--red); margin-bottom: 16px; display: none;
+    }
+    .error-msg.show { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="topbar-back" href="home.html">← Home</a>
+  <div class="topbar-title">My <span>Trips</span></div>
+  <div id="user-chip-anchor"></div>
+</div>
+
+<div class="page">
+
+  <!-- Existing trips -->
+  <div class="section-head">
+    <div class="section-title">Your trips</div>
+    <button class="btn btn-primary" onclick="toggleNewForm()">+ New Trip</button>
+  </div>
+
+  <!-- New trip form -->
+  <div class="new-trip-card" id="new-trip-form">
+    <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:var(--accent)">Create a new trip</div>
+    <div class="error-msg" id="form-error"></div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Trip name</label>
+        <input type="text" id="new-name" placeholder="e.g. Japan Spring 2027" maxlength="80"/>
+      </div>
+      <div class="form-group full">
+        <label>Countries / destinations</label>
+        <input type="text" id="new-countries" placeholder="e.g. Japan, South Korea"/>
+      </div>
+      <div class="form-group">
+        <label>Start date</label>
+        <input type="date" id="new-start"/>
+      </div>
+      <div class="form-group">
+        <label>End date</label>
+        <input type="date" id="new-end"/>
+      </div>
+      <div class="form-group">
+        <label>Number of travellers</label>
+        <input type="number" id="new-travellers" placeholder="e.g. 3" min="1" max="50"/>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="create-btn" onclick="createTrip()">Create trip</button>
+      <button class="btn btn-ghost" onclick="toggleNewForm()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Trip cards -->
+  <div class="trips-grid" id="trips-grid">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">🗺️</div>
+      <div>No trips yet — create your first one above.</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="auth.js"></script>
+<script>
+  Auth.injectChipStyles();
+
+  let currentUser = null;
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+  }
+
+  function toggleNewForm() {
+    const form = document.getElementById('new-trip-form');
+    form.classList.toggle('open');
+    document.getElementById('form-error').classList.remove('show');
+  }
+
+  async function renderTrips() {
+    const grid  = document.getElementById('trips-grid');
+    const empty = document.getElementById('empty-state');
+    const trips = await FireDB.listUserTrips(currentUser.tripIds || []);
+
+    if (!trips.length) {
+      grid.innerHTML = '';
+      grid.appendChild(empty);
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    const active = currentUser.activeTripId;
+    grid.innerHTML = trips.map(t => `
+      <div class="trip-card ${t.tripId === active ? 'active-trip' : ''}" onclick="switchTrip('${t.tripId}')">
+        ${t.tripId === active ? '<div class="active-badge">Active</div>' : ''}
+        <div class="trip-card-name">${esc(t.name || 'Untitled trip')}</div>
+        <div class="trip-card-countries">📍 ${esc(t.countries || '—')}</div>
+        <div class="trip-card-meta">
+          ${t.startDate ? `<span class="trip-meta-chip">✈ ${fmtDate(t.startDate)}</span>` : ''}
+          ${t.endDate   ? `<span class="trip-meta-chip">🏠 ${fmtDate(t.endDate)}</span>`   : ''}
+          ${t.travellers ? `<span class="trip-meta-chip">👥 ${t.travellers} traveller${t.travellers > 1 ? 's' : ''}</span>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  async function switchTrip(tripId) {
+    await Auth.setActiveTrip(tripId);
+    currentUser = Auth.getCurrentUser();
+    await renderTrips();
+    setTimeout(() => window.location.href = 'home.html', 300);
+  }
+
+  async function createTrip() {
+    const btn     = document.getElementById('create-btn');
+    const errEl   = document.getElementById('form-error');
+    const name      = document.getElementById('new-name').value.trim();
+    const countries = document.getElementById('new-countries').value.trim();
+    const start     = document.getElementById('new-start').value;
+    const end       = document.getElementById('new-end').value;
+    const travellers= parseInt(document.getElementById('new-travellers').value) || 1;
+
+    errEl.classList.remove('show');
+    if (!name)      { errEl.textContent = 'Please enter a trip name.';           errEl.classList.add('show'); return; }
+    if (!countries) { errEl.textContent = 'Please enter at least one destination.'; errEl.classList.add('show'); return; }
+    if (start && end && end < start) { errEl.textContent = 'End date must be after start date.'; errEl.classList.add('show'); return; }
+
+    btn.disabled = true; btn.textContent = 'Creating…';
+    try {
+      await Auth.createTrip(name, countries, start, end, travellers);
+      currentUser = Auth.getCurrentUser();
+      document.getElementById('new-name').value = '';
+      document.getElementById('new-countries').value = '';
+      document.getElementById('new-start').value = '';
+      document.getElementById('new-end').value = '';
+      document.getElementById('new-travellers').value = '';
+      toggleNewForm();
+      await renderTrips();
+    } catch(e) {
+      errEl.textContent = e.message; errEl.classList.add('show');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create trip';
+    }
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  (async () => {
+    currentUser = await Auth.requireAuth();
+    Auth.renderUserChip('#user-chip-anchor');
+    await renderTrips();
+  })();
+</script>
+</body>
+</html>
