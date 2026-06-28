@@ -264,17 +264,11 @@
   function cpGetValue() { return newSelectedCountries.join(', '); }
   function cpReset() { newSelectedCountries = []; cpRenderTags(); document.getElementById('new-countries-search').value = ''; }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const search = document.getElementById('new-countries-search');
-    search.addEventListener('input',  () => { cpRenderDropdown(search.value); document.getElementById('new-countries-dropdown').classList.add('open'); });
-    search.addEventListener('focus',  () => { cpRenderDropdown(search.value); document.getElementById('new-countries-dropdown').classList.add('open'); });
-    document.addEventListener('click', e => { if (!e.target.closest('.country-picker')) document.getElementById('new-countries-dropdown').classList.remove('open'); });
-  });
-
-  function fmtDate(d) {
-    if (!d) return '—';
-    return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
-  }
+  // Country picker event listeners — attached directly since script is at bottom of page
+  const _cpSearch = document.getElementById('new-countries-search');
+  _cpSearch.addEventListener('input',  () => { cpRenderDropdown(_cpSearch.value); document.getElementById('new-countries-dropdown').classList.add('open'); });
+  _cpSearch.addEventListener('focus',  () => { cpRenderDropdown(_cpSearch.value); document.getElementById('new-countries-dropdown').classList.add('open'); });
+  document.addEventListener('click', e => { if (!e.target.closest('.country-picker')) document.getElementById('new-countries-dropdown').classList.remove('open'); });
 
   function toggleNewForm() {
     const form = document.getElementById('new-trip-form');
