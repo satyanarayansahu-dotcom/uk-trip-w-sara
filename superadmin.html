@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Super Admin · Road Trip Planner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; background: #0d1117; color: #e6edf3; }
+    :root {
+      --bg:#0d1117; --surface:#161b22; --surface2:#21262d;
+      --border:#30363d; --accent:#58a6ff; --green:#3fb950;
+      --yellow:#d29922; --red:#f85149; --purple:#bc8cff; --muted:#8b949e; --r:10px;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 24px; display: flex; align-items: center; gap: 16px; height: 56px;
+    }
+    .topbar-title { font-weight: 800; font-size: 16px; flex: 1; }
+    .topbar-title span { color: var(--purple); }
+    #user-chip-anchor { margin-left: auto; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 0;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    .tab {
+      padding: 14px 20px; font-size: 13px; font-weight: 600;
+      color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s; white-space: nowrap;
+    }
+    .tab:hover { color: #e6edf3; }
+    .tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+
+    /* ── Page ── */
+    .page { padding: 28px 24px; max-width: 1000px; margin: 0 auto; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Stats bar ── */
+    .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 16px 20px; flex: 1; min-width: 120px;
+    }
+    .stat-val { font-size: 28px; font-weight: 800; }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+
+    /* ── Table ── */
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); background: var(--surface2); }
+    td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .avatar.su { background: var(--purple); }
+    .user-cell { display: flex; align-items: center; gap: 10px; }
+    .user-name { font-weight: 600; }
+    .user-email { font-size: 11px; color: var(--muted); }
+
+    .badge {
+      display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 10px; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .badge-admin   { background: rgba(88,166,255,.15); color: var(--accent); }
+    .badge-editor  { background: rgba(63,185,80,.15);  color: var(--green); }
+    .badge-viewer  { background: rgba(139,148,158,.15);color: var(--muted); }
+    .badge-super   { background: rgba(188,140,255,.15);color: var(--purple); }
+    .badge-suspended { background: rgba(248,81,73,.15); color: var(--red); }
+    .badge-active  { background: rgba(63,185,80,.12);  color: var(--green); }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; transition: opacity .15s; }
+    .btn-danger  { background: rgba(248,81,73,.15); color: var(--red); }
+    .btn-danger:hover  { background: rgba(248,81,73,.25); }
+    .btn-warn    { background: rgba(210,153,34,.15); color: var(--yellow); }
+    .btn-warn:hover    { background: rgba(210,153,34,.25); }
+    .btn-ok      { background: rgba(63,185,80,.15); color: var(--green); }
+    .btn-ok:hover      { background: rgba(63,185,80,.25); }
+    .btn-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .loading { color: var(--muted); font-size: 13px; padding: 24px; text-align: center; }
+    .empty   { color: var(--muted); font-size: 13px; padding: 24px; text-align: center; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">⚡ <span>Super Admin</span></div>
+  <div id="user-chip-anchor"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('admins')">👑 Admins</div>
+  <div class="tab" onclick="switchTab('trips')">🗺️ All Trips</div>
+  <div class="tab" onclick="switchTab('users')">👥 All Users</div>
+</div>
+
+<div class="page">
+
+  <!-- ── Admins tab ── -->
+  <div class="tab-panel active" id="panel-admins">
+    <div class="stats">
+      <div class="stat-card"><div class="stat-val" id="stat-admins">—</div><div class="stat-label">Admins</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-users">—</div><div class="stat-label">Total Users</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-trips">—</div><div class="stat-label">Total Trips</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Admin</th><th>Joined</th><th>Invited Users</th><th>Trips</th><th>Actions</th></tr></thead>
+        <tbody id="admins-tbody"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Trips tab ── -->
+  <div class="tab-panel" id="panel-trips">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Trip</th><th>Destinations</th><th>Dates</th><th>Travellers</th><th>Owner</th><th>Actions</th></tr></thead>
+        <tbody id="trips-tbody"><tr><td colspan="6" class="loading">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Users tab ── -->
+  <div class="tab-panel" id="panel-users">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+        <tbody id="users-tbody"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="auth.js"></script>
+<script>
+  Auth.injectChipStyles();
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }); }
+
+  let allUsers = [], allTrips = [];
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['admins','trips','users'][i] === name));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+  }
+
+  // ── Load all data ──────────────────────────────────────────────────────────
+  async function loadAll() {
+    allUsers = await Auth.loadUsersAsync();
+
+    // Load all trips from Firestore
+    const tripsSnap = await db.collection('trips').get();
+    allTrips = tripsSnap.docs.map(d => ({ tripId: d.id, ...d.data().meta })).filter(t => t && t.name);
+
+    renderAdmins();
+    renderTrips();
+    renderUsers();
+  }
+
+  // ── Admins tab ─────────────────────────────────────────────────────────────
+  function renderAdmins() {
+    const admins = allUsers.filter(u => u.role === 'admin');
+    document.getElementById('stat-admins').textContent = admins.length;
+    document.getElementById('stat-users').textContent  = allUsers.filter(u => u.role !== 'superuser').length;
+    document.getElementById('stat-trips').textContent  = allTrips.length;
+
+    const tbody = document.getElementById('admins-tbody');
+    if (!admins.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No admins yet.</td></tr>'; return; }
+
+    tbody.innerHTML = admins.map(u => {
+      const invitedCount = allUsers.filter(x => x.grantedBy === u.uid).length;
+      const tripCount    = (u.tripIds || []).length;
+      return `<tr>
+        <td><div class="user-cell">
+          <div class="avatar">${(u.name||'?').charAt(0).toUpperCase()}</div>
+          <div><div class="user-name">${esc(u.name)}</div><div class="user-email">${esc(u.email)}</div></div>
+        </div></td>
+        <td>${fmtDate(u.createdAt)}</td>
+        <td>${invitedCount}</td>
+        <td>${tripCount}</td>
+        <td><div class="btn-actions">
+          <button class="btn btn-danger" onclick="deleteAdmin('${u.uid}','${esc(u.name)}')">🗑 Delete + cascade</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function deleteAdmin(uid, name) {
+    if (!confirm(`Delete admin "${name}" and ALL their invited users and trips? This cannot be undone.`)) return;
+    try {
+      await Auth.deleteAdminCascade(uid);
+      await loadAll();
+    } catch(e) { alert('Error: ' + e.message); }
+  }
+
+  // ── Trips tab ──────────────────────────────────────────────────────────────
+  function renderTrips() {
+    const tbody = document.getElementById('trips-tbody');
+    if (!allTrips.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No trips found.</td></tr>'; return; }
+
+    tbody.innerHTML = allTrips.map(t => {
+      const owner = allUsers.find(u => u.uid === t.createdBy);
+      return `<tr>
+        <td><strong>${esc(t.name || 'Untitled')}</strong></td>
+        <td>${esc(t.countries || '—')}</td>
+        <td style="font-size:12px">${fmtDate(t.startDate)} → ${fmtDate(t.endDate)}</td>
+        <td>${t.travellers || '—'}</td>
+        <td>${owner ? esc(owner.name) : '<span style="color:var(--muted)">Unknown</span>'}</td>
+        <td><button class="btn btn-danger" onclick="deleteTrip('${t.tripId}','${esc(t.name||'')}')">🗑 Delete</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function deleteTrip(tripId, name) {
+    if (!confirm(`Delete trip "${name}" and all its data? This cannot be undone.`)) return;
+    try {
+      const sections = ['flights','accom','car','itinerary','checklist','contacts','passports'];
+      await Promise.all(sections.map(s =>
+        db.collection('trips').doc(tripId).collection('data').doc(s).delete().catch(() => {})
+      ));
+      await db.collection('trips').doc(tripId).delete();
+      await loadAll();
+    } catch(e) { alert('Error: ' + e.message); }
+  }
+
+  // ── Users tab ──────────────────────────────────────────────────────────────
+  function renderUsers() {
+    const tbody = document.getElementById('users-tbody');
+    const visible = allUsers.filter(u => u.role !== 'superuser');
+    if (!visible.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No users found.</td></tr>'; return; }
+
+    tbody.innerHTML = visible.map(u => {
+      const roleBadge = `<span class="badge badge-${u.role}">${u.role}</span>`;
+      const statusBadge = u.suspended
+        ? `<span class="badge badge-suspended">Suspended</span>`
+        : `<span class="badge badge-active">Active</span>`;
+      return `<tr>
+        <td><div class="user-cell">
+          <div class="avatar">${(u.name||'?').charAt(0).toUpperCase()}</div>
+          <div><div class="user-name">${esc(u.name)}</div><div class="user-email">${esc(u.email)}</div></div>
+        </div></td>
+        <td>${roleBadge}</td>
+        <td>${statusBadge}</td>
+        <td>${fmtDate(u.createdAt)}</td>
+        <td><div class="btn-actions">
+          ${u.suspended
+            ? `<button class="btn btn-ok"   onclick="reactivate('${u.uid}')">✓ Reactivate</button>`
+            : `<button class="btn btn-warn" onclick="suspend('${u.uid}','${esc(u.name)}')">⏸ Suspend</button>`}
+          <button class="btn btn-danger" onclick="deleteUser('${u.uid}','${esc(u.name)}')">🗑 Delete</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function suspend(uid, name) {
+    if (!confirm(`Suspend "${name}"? They won't be able to log in.`)) return;
+    await Auth.suspendUser(uid); await loadAll();
+  }
+  async function reactivate(uid) {
+    await Auth.reactivateUser(uid); await loadAll();
+  }
+  async function deleteUser(uid, name) {
+    if (!confirm(`Permanently delete user "${name}"?`)) return;
+    await Auth.revokeAccess(uid); await loadAll();
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  (async () => {
+    const user = await Auth.requireAuth();
+    if (!Auth.isSuperUser()) { window.location.href = 'home.html'; return; }
+    Auth.renderUserChip('#user-chip-anchor');
+    await loadAll();
+  })();
+</script>
+</body>
+</html>

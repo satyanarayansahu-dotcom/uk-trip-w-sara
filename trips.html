@@ -101,6 +101,37 @@
     .btn-ghost:hover { color: #e6edf3; }
     .btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
 
+    /* ── Country picker ── */
+    .country-picker { position: relative; }
+    .cp-search {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--r); color: #e6edf3; font-size: 14px;
+      padding: 10px 14px; font-family: inherit; transition: border-color .15s; outline: none;
+    }
+    .cp-search::placeholder { color: var(--muted); }
+    .cp-search:focus { border-color: var(--accent); }
+    .cp-dropdown {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: #1c2230; border: 1px solid var(--border);
+      border-radius: var(--r); max-height: 180px; overflow-y: auto;
+      z-index: 200; box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    }
+    .cp-dropdown.open { display: block; }
+    .cp-option {
+      padding: 9px 14px; font-size: 13px; cursor: pointer; color: #e6edf3;
+      transition: background .1s; display: flex; align-items: center; justify-content: space-between;
+    }
+    .cp-option:hover { background: rgba(88,166,255,.12); }
+    .cp-option.selected { background: rgba(88,166,255,.18); color: var(--accent); }
+    .cp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .cp-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(88,166,255,.18); color: var(--accent);
+      border-radius: 20px; padding: 3px 10px 3px 12px;
+      font-size: 12px; font-weight: 600;
+    }
+    .cp-tag button { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+
     .error-msg {
       background: rgba(248,81,73,.12); border: 1px solid rgba(248,81,73,.3);
       border-radius: 8px; padding: 10px 14px; font-size: 13px;
@@ -136,7 +167,11 @@
       </div>
       <div class="form-group full">
         <label>Countries / destinations</label>
-        <input type="text" id="new-countries" placeholder="e.g. Japan, South Korea"/>
+        <div class="country-picker">
+          <input class="cp-search" id="new-countries-search" type="text" placeholder="Search and select countries…" autocomplete="off"/>
+          <div class="cp-dropdown" id="new-countries-dropdown"></div>
+          <div class="cp-tags" id="new-countries-tags"></div>
+        </div>
       </div>
       <div class="form-group">
         <label>Start date</label>
@@ -176,6 +211,42 @@
   Auth.injectChipStyles();
 
   let currentUser = null;
+
+  // ── Country picker ──────────────────────────────────────────────────────
+  const COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+  let newSelectedCountries = [];
+
+  function cpRenderTags() {
+    document.getElementById('new-countries-tags').innerHTML = newSelectedCountries.map(c => `
+      <span class="cp-tag">${c}<button onclick="cpRemove('${c}')" title="Remove">×</button></span>`).join('');
+  }
+  function cpRenderDropdown(filter) {
+    const dd = document.getElementById('new-countries-dropdown');
+    const filtered = COUNTRIES.filter(c => c.toLowerCase().includes((filter||'').toLowerCase()));
+    if (!filtered.length) { dd.innerHTML = '<div class="cp-option" style="color:var(--muted)">No results</div>'; return; }
+    dd.innerHTML = filtered.map(c => {
+      const sel = newSelectedCountries.includes(c);
+      return `<div class="cp-option${sel?' selected':''}" onclick="cpToggle('${c}')">${c}${sel?' <span>✓</span>':''}</div>`;
+    }).join('');
+  }
+  function cpToggle(c) {
+    if (newSelectedCountries.includes(c)) newSelectedCountries = newSelectedCountries.filter(x => x !== c);
+    else newSelectedCountries.push(c);
+    cpRenderTags(); cpRenderDropdown(document.getElementById('new-countries-search').value);
+  }
+  function cpRemove(c) {
+    newSelectedCountries = newSelectedCountries.filter(x => x !== c);
+    cpRenderTags(); cpRenderDropdown(document.getElementById('new-countries-search').value);
+  }
+  function cpGetValue() { return newSelectedCountries.join(', '); }
+  function cpReset() { newSelectedCountries = []; cpRenderTags(); document.getElementById('new-countries-search').value = ''; }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const search = document.getElementById('new-countries-search');
+    search.addEventListener('input',  () => { cpRenderDropdown(search.value); document.getElementById('new-countries-dropdown').classList.add('open'); });
+    search.addEventListener('focus',  () => { cpRenderDropdown(search.value); document.getElementById('new-countries-dropdown').classList.add('open'); });
+    document.addEventListener('click', e => { if (!e.target.closest('.country-picker')) document.getElementById('new-countries-dropdown').classList.remove('open'); });
+  });
 
   function fmtDate(d) {
     if (!d) return '—';
@@ -225,14 +296,14 @@
     const btn     = document.getElementById('create-btn');
     const errEl   = document.getElementById('form-error');
     const name      = document.getElementById('new-name').value.trim();
-    const countries = document.getElementById('new-countries').value.trim();
+    const countries = cpGetValue();
     const start     = document.getElementById('new-start').value;
     const end       = document.getElementById('new-end').value;
     const travellers= parseInt(document.getElementById('new-travellers').value) || 1;
 
     errEl.classList.remove('show');
     if (!name)      { errEl.textContent = 'Please enter a trip name.';           errEl.classList.add('show'); return; }
-    if (!countries) { errEl.textContent = 'Please enter at least one destination.'; errEl.classList.add('show'); return; }
+    if (!countries) { errEl.textContent = 'Please select at least one country.'; errEl.classList.add('show'); return; }
     if (start && end && end < start) { errEl.textContent = 'End date must be after start date.'; errEl.classList.add('show'); return; }
 
     btn.disabled = true; btn.textContent = 'Creating…';
@@ -240,7 +311,7 @@
       await Auth.createTrip(name, countries, start, end, travellers);
       currentUser = Auth.getCurrentUser();
       document.getElementById('new-name').value = '';
-      document.getElementById('new-countries').value = '';
+      cpReset();
       document.getElementById('new-start').value = '';
       document.getElementById('new-end').value = '';
       document.getElementById('new-travellers').value = '';

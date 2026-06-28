@@ -35,7 +35,13 @@ const EMAILJS_SERVICE_ID  = 'service_607fd7k';
 const EMAILJS_TEMPLATE_ID = 'template_2zj8iud';
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  FireDB — multi-trip data layer
+//  Super User — email used to identify the superuser account.
+//  Set SUPERUSER_PASSWORD in your browser console or environment before
+//  calling Auth.seedSuperUser() for the first time.
+// ─────────────────────────────────────────────────────────────────────────────
+const SUPERUSER_EMAIL = 'superadmin@trip.app';
+
+
 //  Trip data:  trips/{tripId}/data/{section}
 //  Trip meta:  trips/{tripId}/meta
 //  Users:      users/{uid}

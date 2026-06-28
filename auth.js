@@ -128,13 +128,34 @@
   async function login(email, password) {
     const user = await findByEmail(email);
     if (!user) throw new Error('No account found for this email.');
+    if (user.suspended) throw new Error('Your account has been suspended. Please contact the administrator.');
     const hash = await hashPassword(password);
     if (hash !== user.passwordHash) throw new Error('Incorrect password.');
 
-    // Re-authenticate with Firebase anonymously (just to have a live session).
     await fbAuth.signInAnonymously();
     await setSession(user);
-    return user;
+
+    // ── UK trip auto-migration (runs once per admin) ──────────────────────
+    if ((user.role === 'admin') && !(user.tripIds || []).includes('uk-road-trip-2026')) {
+      try {
+        const ukSnap = await db.collection('trips').doc('uk-road-trip-2026').get();
+        if (ukSnap.exists) {
+          const tripIds = [...(user.tripIds || []), 'uk-road-trip-2026'];
+          const activeTripId = user.activeTripId || 'uk-road-trip-2026';
+          // Write meta if missing
+          const meta = ukSnap.data().meta;
+          if (!meta) {
+            await db.collection('trips').doc('uk-road-trip-2026').set({
+              meta: { name: 'UK Road Trip 2026', countries: 'United Kingdom', startDate: '2026-07-03', endDate: '2026-07-18', travellers: 3, createdBy: user.uid, createdAt: new Date().toISOString() }
+            }, { merge: true });
+          }
+          await saveUserDoc(user.uid, { tripIds, activeTripId });
+          _currentUser = { ..._currentUser, tripIds, activeTripId };
+        }
+      } catch(e) { console.warn('UK migration skipped:', e.message); }
+    }
+
+    return _currentUser || user;
   }
 
   // ── Grant / revoke / update role (admin only) ─────────────────────────────
@@ -242,6 +263,60 @@
     return tripId;
   }
 
+  // ── Super user helpers ────────────────────────────────────────────────────
+  function isSuperUser() {
+    return _currentUser && _currentUser.role === 'superuser';
+  }
+
+  async function suspendUser(uid) {
+    await saveUserDoc(uid, { suspended: true });
+  }
+
+  async function reactivateUser(uid) {
+    await saveUserDoc(uid, { suspended: false });
+  }
+
+  async function deleteAdminCascade(adminUid) {
+    // Load admin doc to get their tripIds
+    const adminDoc = await loadUserDoc(adminUid);
+    if (!adminDoc) throw new Error('Admin not found.');
+
+    // Delete all trips owned by this admin
+    const tripIds = adminDoc.tripIds || [];
+    await Promise.all(tripIds.map(async tid => {
+      // Delete data subcollection docs
+      const sections = ['flights','accom','car','itinerary','checklist','contacts','passports'];
+      await Promise.all(sections.map(s =>
+        db.collection('trips').doc(tid).collection('data').doc(s).delete().catch(() => {})
+      ));
+      await db.collection('trips').doc(tid).delete().catch(() => {});
+    }));
+
+    // Delete all users granted access by this admin
+    const grantedSnap = await usersRef().where('grantedBy', '==', adminUid).get();
+    await Promise.all(grantedSnap.docs.map(d => d.ref.delete()));
+
+    // Delete the admin themselves
+    await usersRef().doc(adminUid).delete();
+  }
+
+  async function seedSuperUser(password) {
+    if (typeof SUPERUSER_EMAIL === 'undefined' || !password) return;
+    try {
+      const existing = await findByEmail(SUPERUSER_EMAIL);
+      if (existing) return;
+      const cred = await fbAuth.signInAnonymously();
+      const uid  = cred.user.uid;
+      const hash = await hashPassword(password);
+      await saveUserDoc(uid, {
+        name: 'Super Admin', email: SUPERUSER_EMAIL,
+        passwordHash: hash, role: 'superuser',
+        createdAt: new Date().toISOString(),
+        grantedBy: null, activeTripId: null, tripIds: [],
+      });
+    } catch(e) { console.warn('seedSuperUser:', e.message); }
+  }
+
   // ── Data wrappers — pass active trip through to FireDB ────────────────────
   async function getData(key, fallback) {
     return FireDB.load(getActiveTrip(), key, fallback);
@@ -285,6 +360,7 @@
           <div style="font-size:11px;color:var(--muted,#8b949e);margin-top:1px">${u.email||''}</div>
         </div>
         ${u.role === 'admin' ? '<a class="auth-menu-item" href="itinerary.html#access">👥 Manage Access</a>' : ''}
+        ${u.role === 'superuser' ? '<a class="auth-menu-item" href="superadmin.html">⚡ Super Admin</a>' : ''}
         <a class="auth-menu-item" href="trips.html">🗺️ My Trips</a>
         <a class="auth-menu-item" href="profile.html">👤 My Profile</a>
         <div class="auth-menu-item auth-signout" onclick="Auth.logout()">🚪 Sign out</div>
@@ -359,11 +435,12 @@
   const Auth = {
     hashPassword, register, login, logout,
     getCurrentUser, refreshCurrentUser, requireAuth,
-    canEdit, isAdmin,
+    canEdit, isAdmin, isSuperUser,
     storageKey, getData, saveData,
     getActiveTrip, setActiveTrip, createTrip,
     grantAccess, revokeAccess, updateRole,
     updateProfile, changePassword,
+    suspendUser, reactivateUser, deleteAdminCascade, seedSuperUser,
     loadUsers, loadUsersAsync,
     renderUserChip, injectChipStyles,
   };

@@ -72,6 +72,50 @@
     input:focus, textarea:focus { border-color: #58a6ff; background: rgba(255,255,255,0.14); }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
+    /* ── Country picker ── */
+    .country-picker { position: relative; }
+    .country-search {
+      width: 100%;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      color: #fff; font-size: 14px;
+      padding: 11px 14px;
+      font-family: inherit;
+      transition: border-color .15s, background .15s;
+      outline: none;
+    }
+    .country-search::placeholder { color: rgba(255,255,255,0.30); }
+    .country-search:focus { border-color: #58a6ff; background: rgba(255,255,255,0.14); }
+    .country-dropdown {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: #1c2230; border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px; max-height: 200px; overflow-y: auto;
+      z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .country-dropdown.open { display: block; }
+    .country-option {
+      padding: 10px 14px; font-size: 13px; cursor: pointer;
+      color: #e6edf3; transition: background .1s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .country-option:hover { background: rgba(88,166,255,.12); }
+    .country-option.selected { background: rgba(88,166,255,.18); color: #58a6ff; }
+    .country-option.selected::after { content: '✓'; margin-left: auto; font-weight: 700; }
+    .country-tags {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; min-height: 0;
+    }
+    .country-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(88,166,255,.18); color: #58a6ff;
+      border-radius: 20px; padding: 3px 10px 3px 12px;
+      font-size: 12px; font-weight: 600;
+    }
+    .country-tag button {
+      background: none; border: none; color: #58a6ff;
+      cursor: pointer; font-size: 14px; padding: 0; line-height: 1;
+    }
+
     .btn-primary {
       width: 100%; padding: 13px;
       background: #58a6ff; color: #fff;
@@ -91,6 +135,38 @@
       margin-top: 8px;
     }
     .btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+
+    /* ── Country picker ── */
+    .country-picker { position: relative; }
+    .country-search {
+      width: 100%; background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.22); border-radius: 10px;
+      color: #fff; font-size: 14px; padding: 11px 14px;
+      font-family: inherit; transition: border-color .15s; outline: none;
+    }
+    .country-search::placeholder { color: rgba(255,255,255,0.30); }
+    .country-search:focus { border-color: #58a6ff; background: rgba(255,255,255,0.14); }
+    .country-dropdown {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: #1c2230; border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px; max-height: 180px; overflow-y: auto;
+      z-index: 200; box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    }
+    .country-dropdown.open { display: block; }
+    .country-option {
+      padding: 9px 14px; font-size: 13px; cursor: pointer; color: #e6edf3;
+      transition: background .1s; display: flex; align-items: center; justify-content: space-between;
+    }
+    .country-option:hover { background: rgba(88,166,255,.12); }
+    .country-option.selected { background: rgba(88,166,255,.18); color: #58a6ff; }
+    .country-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .country-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(88,166,255,.18); color: #58a6ff;
+      border-radius: 20px; padding: 3px 10px 3px 12px;
+      font-size: 12px; font-weight: 600;
+    }
+    .country-tag button { background: none; border: none; color: #58a6ff; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
 
     /* ── Summary step ── */
     .summary-row {
@@ -135,7 +211,11 @@
     </div>
     <div class="form-group">
       <label>Countries / destinations</label>
-      <input type="text" id="trip-countries" placeholder="e.g. France, Italy, Spain"/>
+      <div class="country-picker">
+        <input type="text" class="country-search" id="country-search" placeholder="Search countries…" autocomplete="off" oninput="filterCountries()" onfocus="openDropdown()" />
+        <div class="country-dropdown" id="country-dropdown"></div>
+        <div class="country-tags" id="country-tags"></div>
+      </div>
     </div>
     <button class="btn-primary" onclick="goStep(2)">Next →</button>
     <button class="btn-ghost" onclick="skip()">Skip — set up later</button>
@@ -184,6 +264,59 @@
   Auth.injectChipStyles();
   (async () => { await Auth.requireAuth(); })();
 
+  // ── Country picker ────────────────────────────────────────────────────────
+  const COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+
+  let selectedCountries = [];
+
+  function renderTags() {
+    document.getElementById('country-tags').innerHTML = selectedCountries.map(c => `
+      <span class="country-tag">${c}<button onclick="removeCountry('${c}')" title="Remove">×</button></span>`).join('');
+  }
+
+  function renderDropdown(filter) {
+    const dd = document.getElementById('country-dropdown');
+    const filtered = COUNTRIES.filter(c => c.toLowerCase().includes(filter.toLowerCase()));
+    if (!filtered.length) { dd.innerHTML = '<div class="country-option" style="color:var(--muted,#8b949e)">No results</div>'; return; }
+    dd.innerHTML = filtered.map(c => {
+      const sel = selectedCountries.includes(c);
+      return `<div class="country-option${sel?' selected':''}" onclick="toggleCountry('${c}')">${c}${sel ? ' <span>✓</span>' : ''}</div>`;
+    }).join('');
+  }
+
+  function toggleCountry(c) {
+    if (selectedCountries.includes(c)) {
+      selectedCountries = selectedCountries.filter(x => x !== c);
+    } else {
+      selectedCountries.push(c);
+    }
+    renderTags();
+    renderDropdown(document.getElementById('country-search').value);
+  }
+
+  function removeCountry(c) {
+    selectedCountries = selectedCountries.filter(x => x !== c);
+    renderTags();
+    renderDropdown(document.getElementById('country-search').value);
+  }
+
+  document.getElementById('country-search').addEventListener('input', function() {
+    renderDropdown(this.value);
+    document.getElementById('country-dropdown').classList.add('open');
+  });
+  document.getElementById('country-search').addEventListener('focus', function() {
+    renderDropdown(this.value);
+    document.getElementById('country-dropdown').classList.add('open');
+  });
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.country-picker')) {
+      document.getElementById('country-dropdown').classList.remove('open');
+    }
+  });
+
+  function getSelectedCountries() { return selectedCountries.join(', '); }
+
+  // ── Wizard logic ──────────────────────────────────────────────────────────
   function fmtDate(d) {
     if (!d) return '—';
     return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
@@ -201,10 +334,9 @@
     errEl.classList.remove('show');
 
     if (n === 2) {
-      const name      = document.getElementById('trip-name').value.trim();
-      const countries = document.getElementById('trip-countries').value.trim();
-      if (!name)      { errEl.textContent = 'Please enter a trip name.';      errEl.classList.add('show'); return; }
-      if (!countries) { errEl.textContent = 'Please enter at least one destination.'; errEl.classList.add('show'); return; }
+      const name = document.getElementById('trip-name').value.trim();
+      if (!name)                    { errEl.textContent = 'Please enter a trip name.';           errEl.classList.add('show'); return; }
+      if (!selectedCountries.length){ errEl.textContent = 'Please select at least one country.'; errEl.classList.add('show'); return; }
     }
     if (n === 3) {
       const start = document.getElementById('trip-start').value;
@@ -222,11 +354,11 @@
 
   function buildSummary() {
     const rows = [
-      { label: 'Trip name',     value: document.getElementById('trip-name').value.trim() },
-      { label: 'Destinations',  value: document.getElementById('trip-countries').value.trim() },
-      { label: 'Start date',    value: fmtDate(document.getElementById('trip-start').value) },
-      { label: 'End date',      value: fmtDate(document.getElementById('trip-end').value) },
-      { label: 'Travellers',    value: document.getElementById('trip-travellers').value || '—' },
+      { label: 'Trip name',    value: document.getElementById('trip-name').value.trim() },
+      { label: 'Destinations', value: getSelectedCountries() },
+      { label: 'Start date',   value: fmtDate(document.getElementById('trip-start').value) },
+      { label: 'End date',     value: fmtDate(document.getElementById('trip-end').value) },
+      { label: 'Travellers',   value: document.getElementById('trip-travellers').value || '—' },
     ];
     document.getElementById('summary').innerHTML = rows.map(r => `
       <div class="summary-row">
@@ -236,14 +368,14 @@
   }
 
   async function createTrip() {
-    const btn  = document.getElementById('create-btn');
+    const btn   = document.getElementById('create-btn');
     const errEl = document.getElementById('error-msg');
     errEl.classList.remove('show');
     btn.disabled = true; btn.textContent = 'Creating…';
     try {
       await Auth.createTrip(
         document.getElementById('trip-name').value.trim(),
-        document.getElementById('trip-countries').value.trim(),
+        getSelectedCountries(),
         document.getElementById('trip-start').value,
         document.getElementById('trip-end').value,
         parseInt(document.getElementById('trip-travellers').value) || 1,
