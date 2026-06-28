@@ -288,6 +288,10 @@
 
 </div><!-- /page -->
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="auth.js"></script>
 <script>
 // ── Defaults (mirror of manager) ──────────────
@@ -331,12 +335,10 @@ const DEFAULTS = {
   ],
 };
 
+const VIEW_STATE = {};
+
 function getData(key) {
-  try {
-    const sk = Auth.storageKey(key);
-    const d  = localStorage.getItem(sk);
-    return d ? JSON.parse(d) : JSON.parse(JSON.stringify(DEFAULTS[key]));
-  } catch { return JSON.parse(JSON.stringify(DEFAULTS[key])); }
+  return VIEW_STATE[key] || JSON.parse(JSON.stringify(DEFAULTS[key]));
 }
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -532,17 +534,25 @@ function renderPacking() {
 }
 
 // ── Init ──────────────────────────────────────
-renderKPIs();
-renderTimeline();
-renderFlights();
-renderAccom();
-renderCar();
-renderCost();
-renderPacking();
+const VIEW_SECTIONS = ['flights','accom','car','itinerary','checklist'];
+Promise.all(VIEW_SECTIONS.map(async k => {
+  const val = await FireDB.load(k, null);
+  if (val) VIEW_STATE[k] = val;
+})).then(() => {
+  renderKPIs();
+  renderTimeline();
+  renderFlights();
+  renderAccom();
+  renderCar();
+  renderCost();
+  renderPacking();
+});
 
 Auth.injectChipStyles();
-Auth.requireAuth();
-Auth.renderUserChip('#user-chip-anchor');
+(async () => {
+  await Auth.requireAuth();
+  Auth.renderUserChip('#user-chip-anchor');
+})();
 </script>
 </body>
 </html>

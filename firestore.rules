@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Users collection ───────────────────────────────────────────────────
+    // Any authenticated (anonymous) session can read all user docs (needed for
+    // login lookup by email and the access management panel).
+    // Only the user themselves can write their own doc; admins write via server
+    // logic — for a client-only app we allow any auth user to write user docs
+    // (admin enforcement is in JS). Tighten this once you add server-side auth.
+    match /users/{uid} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // ── Shared trip data ───────────────────────────────────────────────────
+    // All authenticated users can read trip data.
+    // Only authenticated users can write (role enforcement is in JS).
+    match /trips/{tripId}/data/{section} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Block everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

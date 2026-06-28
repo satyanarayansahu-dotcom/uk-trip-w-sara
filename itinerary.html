@@ -544,6 +544,10 @@
 
 <div class="save-toast" id="toast">Saved ✓</div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="auth.js"></script>
 <script>
 // ══════════════════════════════════════════════
@@ -657,18 +661,30 @@ const DEFAULTS = {
 };
 
 // ══════════════════════════════════════════════
-//  STATE — per-user namespaced storage via Auth
+//  STATE — in-memory cache, persisted to Firestore
 // ══════════════════════════════════════════════
-function load(key) {
-  return Auth.getData(key, null);
+const STATE = {};
+
+function getData(key) {
+  return STATE[key] || JSON.parse(JSON.stringify(DEFAULTS[key]));
 }
 function save(key, val) {
-  Auth.saveData(key, val);
+  STATE[key] = val;
+  Auth.saveData(key, val); // async fire-and-forget — no await needed
   showToast();
 }
-function getData(key) { return load(key) || JSON.parse(JSON.stringify(DEFAULTS[key])); }
 
 let nextId = { flights: 100, accom: 100, car: 100, itinerary: 100, contacts: 100, passports: 100 };
+
+// Compute nextId from existing data (called after STATE is loaded)
+function recalcNextIds() {
+  ['flights','accom','car','itinerary','contacts','passports'].forEach(k => {
+    const items = STATE[k];
+    if (Array.isArray(items) && items.length) {
+      nextId[k] = Math.max(...items.map(x => x.id || 0)) + 1;
+    }
+  });
+}
 
 // ══════════════════════════════════════════════
 //  DROPDOWN NAV
@@ -1234,15 +1250,24 @@ tick();
 setInterval(tick, 30000);
 
 // ══════════════════════════════════════════════
-//  INIT
+//  INIT — load all sections from Firestore, then render
 // ══════════════════════════════════════════════
-renderFlights();
-renderPassports();
-renderAccom();
-renderCar();
-renderItinerary();
-renderChecklist();
-renderContacts();
+async function initPage() {
+  const SECTIONS = ['flights','passports','accom','car','itinerary','checklist','contacts'];
+  await Promise.all(SECTIONS.map(async k => {
+    const val = await Auth.getData(k, null);
+    if (val) STATE[k] = val;
+  }));
+  recalcNextIds();
+  renderFlights();
+  renderPassports();
+  renderAccom();
+  renderCar();
+  renderItinerary();
+  renderChecklist();
+  renderContacts();
+}
+initPage();
 
 // ══════════════════════════════════════════════
 //  ACCESS MANAGEMENT (admin only)
@@ -1254,43 +1279,42 @@ function renderAccess() {
   const list = document.getElementById('access-users-list');
   if (!list) return;
   const me = Auth.getCurrentUser();
-  const users = Auth.loadUsers();
-  if (!users.length) { list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">No users yet.</div>'; return; }
-  list.innerHTML = users.map(u => `
-    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
-      <div style="width:34px;height:34px;border-radius:50%;background:#58a6ff;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0">${(u.name||'?').charAt(0).toUpperCase()}</div>
-      <div style="flex:1;min-width:120px">
-        <div style="font-weight:700;font-size:13px">${esc(u.name)} ${u.id === me.id ? '<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:rgba(88,166,255,.15);color:#58a6ff">You</span>' : ''}</div>
-        <div style="font-size:11px;color:var(--muted)">${esc(u.email)}</div>
-      </div>
-      <select style="font-size:12px;padding:5px 8px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text)" onchange="changeRole('${u.id}',this.value)" ${u.id === me.id ? 'disabled' : ''}>
-        <option value="viewer"  ${u.role==='viewer'?'selected':''}>Viewer</option>
-        <option value="editor"  ${u.role==='editor'?'selected':''}>Editor</option>
-        <option value="admin"   ${u.role==='admin'?'selected':''}>Admin</option>
-      </select>
-      ${u.id !== me.id ? `<button class="btn btn-danger" style="font-size:11px;padding:4px 10px" onclick="revokeUser('${u.id}')">Revoke</button>` : ''}
-    </div>`).join('');
+  Auth.loadUsersAsync().then(users => {
+    if (!users.length) { list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">No users yet.</div>'; return; }
+    list.innerHTML = users.map(u => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+        <div style="width:34px;height:34px;border-radius:50%;background:#58a6ff;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0">${(u.name||'?').charAt(0).toUpperCase()}</div>
+        <div style="flex:1;min-width:120px">
+          <div style="font-weight:700;font-size:13px">${esc(u.name)} ${u.uid === me.uid ? '<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:rgba(88,166,255,.15);color:#58a6ff">You</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--muted)">${esc(u.email)}</div>
+        </div>
+        <select style="font-size:12px;padding:5px 8px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text)" onchange="changeRole('${u.uid}',this.value)" ${u.uid === me.uid ? 'disabled' : ''}>
+          <option value="viewer"  ${u.role==='viewer'?'selected':''}>Viewer</option>
+          <option value="editor"  ${u.role==='editor'?'selected':''}>Editor</option>
+          <option value="admin"   ${u.role==='admin'?'selected':''}>Admin</option>
+        </select>
+        ${u.uid !== me.uid ? `<button class="btn btn-danger" style="font-size:11px;padding:4px 10px" onclick="revokeUser('${u.uid}')">Revoke</button>` : ''}
+      </div>`).join('');
+  });
 }
 
-function changeRole(userId, newRole) {
-  try { Auth.updateRole(userId, newRole); renderAccess(); showToast(); } catch(e) { alert(e.message); }
+async function changeRole(uid, newRole) {
+  try { await Auth.updateRole(uid, newRole); renderAccess(); showToast(); } catch(e) { alert(e.message); }
 }
-function revokeUser(userId) {
+async function revokeUser(uid) {
   if (!confirm('Remove this user\'s access?')) return;
-  Auth.revokeAccess(userId); renderAccess();
+  await Auth.revokeAccess(uid); renderAccess();
 }
 async function inviteUser() {
   const name    = document.getElementById('invite-name').value.trim();
   const email   = document.getElementById('invite-email').value.trim();
   const role    = document.getElementById('invite-role').value;
   const pwd     = document.getElementById('invite-pwd').value;
-  const share   = document.getElementById('share-data').checked;
   const result  = document.getElementById('invite-result');
   result.style.display = 'none';
   if (!name || !email || !pwd) { result.textContent = 'Please fill in name, email and password.'; result.style.color='#f85149'; result.style.display='block'; return; }
   try {
     const user = await Auth.grantAccess(name, email, role, pwd);
-    if (share) Auth.shareAdminDataWith(user.id);
     result.innerHTML = `✅ Account created for <strong>${esc(user.name)}</strong> as <strong>${ROLE_LABELS[role]}</strong>. They can log in at <a href="login.html" style="color:#58a6ff">login.html</a> with the password you set.`;
     result.style.color = '#3fb950';
     result.style.display = 'block';
@@ -1332,10 +1356,12 @@ function enforceRole() {
 //  AUTH INIT
 // ══════════════════════════════════════════════
 Auth.injectChipStyles();
-Auth.requireAuth();
-Auth.renderUserChip('#user-chip-anchor');
-enforceRole();
-if (Auth.isAdmin()) renderAccess();
+(async () => {
+  await Auth.requireAuth();
+  Auth.renderUserChip('#user-chip-anchor');
+  enforceRole();
+  if (Auth.isAdmin()) renderAccess();
+})();
 </script>
 </body>
 </html>

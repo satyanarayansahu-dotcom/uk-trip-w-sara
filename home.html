@@ -293,9 +293,13 @@
 
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="auth.js"></script>
 <script>
-// ── Read itinerary from localStorage (or fallback) ──
+// ── Read itinerary from Firestore (or fallback) ──
 const DEFAULT_ITIN = [
   { date:'2026-07-03', location:'Singapore' },
   { date:'2026-07-04', location:'London' },
@@ -320,9 +324,19 @@ const DEFAULT_ACCOM = [
   { location:'Bath',         checkin:'2026-07-12', checkout:'2026-07-17' },
 ];
 
-function ls(key, fallback) {
-  try { const d = localStorage.getItem('itin_' + key); return d ? JSON.parse(d) : fallback; }
-  catch { return fallback; }
+const HOME_STATE = {};
+
+async function loadHomeData() {
+  const [itin, accom] = await Promise.all([
+    FireDB.load('itinerary', null),
+    FireDB.load('accom', null),
+  ]);
+  if (itin)  HOME_STATE.itinerary = itin;
+  if (accom) HOME_STATE.accom     = accom;
+}
+
+function hs(key, fallback) {
+  return HOME_STATE[key] || fallback;
 }
 
 function fmtD(d) {
@@ -331,7 +345,7 @@ function fmtD(d) {
 
 // ── Route strip — unique locations in date order from itinerary ──
 function buildRoute() {
-  const itin = ls('itinerary', DEFAULT_ITIN);
+  const itin = hs('itinerary', DEFAULT_ITIN);
   const seen = new Set(), ordered = [];
   [...itin]
     .sort((a, b) => (a.date||'') < (b.date||'') ? -1 : 1)
@@ -351,7 +365,7 @@ function buildRoute() {
 
 // ── Dates subtitle ────────────────────────────
 function buildDates() {
-  const itin = ls('itinerary', DEFAULT_ITIN);
+  const itin = hs('itinerary', DEFAULT_ITIN);
   const sorted = [...itin].filter(d => d.date).sort((a,b) => a.date < b.date ? -1 : 1);
   if (sorted.length >= 2) {
     document.getElementById('hero-dates').textContent =
@@ -361,7 +375,7 @@ function buildDates() {
 
 // ── Facts strip ───────────────────────────────
 function buildFacts() {
-  const accom   = ls('accom', DEFAULT_ACCOM);
+  const accom   = hs('accom', DEFAULT_ACCOM);
   const totalNights = accom.reduce((s, a) => {
     if (!a.checkin || !a.checkout) return s;
     return s + Math.max(0, Math.round((new Date(a.checkout) - new Date(a.checkin)) / 86400000));
@@ -392,14 +406,19 @@ function tick() {
 }
 tick(); setInterval(tick, 1000);
 
-buildRoute();
-buildDates();
-buildFacts();
+// Load from Firestore then render
+loadHomeData().then(() => {
+  buildRoute();
+  buildDates();
+  buildFacts();
+});
 
 // Auth
 Auth.injectChipStyles();
-Auth.requireAuth();
-Auth.renderUserChip('#user-chip-anchor');
+(async () => {
+  await Auth.requireAuth();
+  Auth.renderUserChip('#user-chip-anchor');
+})();
 </script>
 </body>
 </html>
