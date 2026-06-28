@@ -645,6 +645,12 @@ function switchSection(id, icon, label, el) {
     const [icon, label, id] = HASH_MAP[hash];
     const el = document.querySelector(`[data-section="${id}"]`);
     if (el) switchSection(id, icon, label, el);
+  } else {
+    // Auto-open the dropdown so user immediately sees section choices
+    setTimeout(() => {
+      document.getElementById('dd-btn').classList.add('open');
+      document.getElementById('dd-menu').classList.add('open');
+    }, 300);
   }
 })();
 
