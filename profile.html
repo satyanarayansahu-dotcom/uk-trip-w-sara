@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Profile · UK Road Trip</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      background: #0d1117;
+      color: #e6edf3;
+    }
+    :root {
+      --bg:      #0d1117;
+      --surface: #161b22;
+      --surface2:#21262d;
+      --border:  #30363d;
+      --accent:  #58a6ff;
+      --green:   #3fb950;
+      --red:     #f85149;
+      --muted:   #8b949e;
+      --r:       10px;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex; align-items: center; gap: 16px;
+      height: 56px;
+    }
+    .topbar-title { font-weight: 800; font-size: 16px; flex: 1; }
+    .topbar-title span { color: var(--accent); }
+    .topbar-back {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--muted); text-decoration: none;
+      transition: color .15s;
+    }
+    .topbar-back:hover { color: var(--accent); }
+
+    /* ── Page ── */
+    .page { padding: 32px 24px; max-width: 600px; margin: 0 auto; }
+
+    /* ── Avatar header ── */
+    .profile-header {
+      display: flex; align-items: center; gap: 20px;
+      margin-bottom: 32px;
+    }
+    .profile-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      font-size: 26px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .profile-header-info h1 { font-size: 20px; font-weight: 800; }
+    .profile-header-info p { font-size: 13px; color: var(--muted); margin-top: 3px; }
+    .role-badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 10px; text-transform: uppercase;
+      letter-spacing: .05em; margin-top: 6px;
+    }
+    .role-admin  { background: rgba(88,166,255,.18); color: #58a6ff; }
+    .role-editor { background: rgba(63,185,80,.18);  color: #3fb950; }
+    .role-viewer { background: rgba(139,148,158,.18);color: #8b949e; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em;
+      color: var(--muted); margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::before {
+      content: ''; width: 3px; height: 14px;
+      border-radius: 2px; background: var(--accent);
+    }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 16px; }
+    label {
+      display: block; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .07em;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      color: var(--accent) /* accent for readonly */ ;
+      font-size: 14px; padding: 11px 14px;
+      font-family: inherit;
+      transition: border-color .15s, background .15s;
+      outline: none;
+    }
+    input:not([readonly]) { color: #e6edf3; }
+    input[readonly] { opacity: .7; cursor: not-allowed; }
+    input::placeholder { color: var(--muted); }
+    input:not([readonly]):focus { border-color: var(--accent); background: #1c2230; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      padding: 10px 22px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: var(--r);
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .btn-danger {
+      padding: 10px 22px;
+      background: transparent; color: var(--red);
+      border: 1px solid var(--red); border-radius: var(--r);
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-danger:hover { background: rgba(248,81,73,.1); }
+
+    /* ── Alerts ── */
+    .alert {
+      padding: 10px 14px; border-radius: 8px;
+      font-size: 13px; margin-top: 14px; display: none;
+    }
+    .alert.show { display: block; }
+    .alert-success { background: rgba(63,185,80,.12); border: 1px solid rgba(63,185,80,.3); color: var(--green); }
+    .alert-error   { background: rgba(248,81,73,.12); border: 1px solid rgba(248,81,73,.3); color: var(--red); }
+
+    /* ── User chip anchor ── */
+    #user-chip-anchor { margin-left: auto; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="topbar-back" href="home.html">← Back</a>
+  <div class="topbar-title">My <span>Profile</span></div>
+  <div id="user-chip-anchor"></div>
+</div>
+
+<div class="page">
+
+  <!-- Avatar header -->
+  <div class="profile-header">
+    <div class="profile-avatar" id="profile-avatar">?</div>
+    <div class="profile-header-info">
+      <h1 id="header-name">Loading…</h1>
+      <p id="header-email"></p>
+      <span class="role-badge" id="header-role-badge"></span>
+    </div>
+  </div>
+
+  <!-- Profile details -->
+  <div class="card">
+    <div class="card-title">Contact details</div>
+    <div class="form-group">
+      <label>Full name</label>
+      <input type="text" id="profile-name" placeholder="Your full name"/>
+    </div>
+    <div class="form-group">
+      <label>Email address</label>
+      <input type="email" id="profile-email" readonly/>
+    </div>
+    <div class="form-group">
+      <label>Phone number</label>
+      <input type="tel" id="profile-phone" placeholder="+65 9123 4567"/>
+    </div>
+    <button class="btn-primary" id="save-profile-btn" onclick="saveProfile()">Save changes</button>
+    <div class="alert alert-success" id="profile-success">Profile updated successfully.</div>
+    <div class="alert alert-error"   id="profile-error"></div>
+  </div>
+
+  <!-- Change password -->
+  <div class="card">
+    <div class="card-title">Change password</div>
+    <div class="form-group">
+      <label>Current password</label>
+      <input type="password" id="pwd-current" placeholder="••••••••"/>
+    </div>
+    <div class="form-group">
+      <label>New password</label>
+      <input type="password" id="pwd-new" placeholder="Min. 6 characters"/>
+    </div>
+    <div class="form-group">
+      <label>Confirm new password</label>
+      <input type="password" id="pwd-confirm" placeholder="Repeat new password"/>
+    </div>
+    <button class="btn-primary" id="save-pwd-btn" onclick="changePassword()">Update password</button>
+    <div class="alert alert-success" id="pwd-success">Password changed. Use your new password next time you log in.</div>
+    <div class="alert alert-error"   id="pwd-error"></div>
+  </div>
+
+  <!-- Sign out -->
+  <div style="text-align:right; margin-top:8px">
+    <button class="btn-danger" onclick="Auth.logout()">Sign out</button>
+  </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="auth.js"></script>
+<script>
+  Auth.injectChipStyles();
+
+  let currentUser = null;
+
+  (async () => {
+    currentUser = await Auth.requireAuth();
+
+    // Populate header
+    document.getElementById('profile-avatar').textContent = (currentUser.name || '?').charAt(0).toUpperCase();
+    document.getElementById('header-name').textContent    = currentUser.name  || '';
+    document.getElementById('header-email').textContent   = currentUser.email || '';
+    const badge = document.getElementById('header-role-badge');
+    badge.textContent  = currentUser.role || '';
+    badge.className    = 'role-badge role-' + (currentUser.role || '');
+
+    // Populate form
+    document.getElementById('profile-name').value  = currentUser.name  || '';
+    document.getElementById('profile-email').value = currentUser.email || '';
+    document.getElementById('profile-phone').value = currentUser.phone || '';
+
+    Auth.renderUserChip('#user-chip-anchor');
+  })();
+
+  async function saveProfile() {
+    const name  = document.getElementById('profile-name').value.trim();
+    const phone = document.getElementById('profile-phone').value.trim();
+    const btn   = document.getElementById('save-profile-btn');
+    const succ  = document.getElementById('profile-success');
+    const err   = document.getElementById('profile-error');
+    succ.classList.remove('show'); err.classList.remove('show');
+
+    if (!name) { err.textContent = 'Name cannot be empty.'; err.classList.add('show'); return; }
+
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      await Auth.updateProfile(name, phone);
+      currentUser = Auth.getCurrentUser();
+      document.getElementById('profile-avatar').textContent = name.charAt(0).toUpperCase();
+      document.getElementById('header-name').textContent    = name;
+      succ.classList.add('show');
+    } catch(e) {
+      err.textContent = e.message; err.classList.add('show');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save changes';
+    }
+  }
+
+  async function changePassword() {
+    const current = document.getElementById('pwd-current').value;
+    const newPwd  = document.getElementById('pwd-new').value;
+    const confirm = document.getElementById('pwd-confirm').value;
+    const btn     = document.getElementById('save-pwd-btn');
+    const succ    = document.getElementById('pwd-success');
+    const err     = document.getElementById('pwd-error');
+    succ.classList.remove('show'); err.classList.remove('show');
+
+    if (!current) { err.textContent = 'Please enter your current password.'; err.classList.add('show'); return; }
+    if (newPwd.length < 6) { err.textContent = 'New password must be at least 6 characters.'; err.classList.add('show'); return; }
+    if (newPwd !== confirm) { err.textContent = 'New passwords do not match.'; err.classList.add('show'); return; }
+
+    btn.disabled = true; btn.textContent = 'Updating…';
+    try {
+      await Auth.changePassword(current, newPwd);
+      document.getElementById('pwd-current').value = '';
+      document.getElementById('pwd-new').value     = '';
+      document.getElementById('pwd-confirm').value = '';
+      succ.classList.add('show');
+    } catch(e) {
+      err.textContent = e.message; err.classList.add('show');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Update password';
+    }
+  }
+</script>
+</body>
+</html>

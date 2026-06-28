@@ -22,8 +22,17 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-const db   = firebase.firestore();
+const db     = firebase.firestore();
 const fbAuth = firebase.auth();
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  EmailJS — for welcome emails when admin invites a user.
+//  Sign up free at https://www.emailjs.com (200 emails/month)
+//  Then paste your values below.
+// ─────────────────────────────────────────────────────────────────────────────
+const EMAILJS_PUBLIC_KEY  = 'PASTE_YOUR_EMAILJS_PUBLIC_KEY';
+const EMAILJS_SERVICE_ID  = 'PASTE_YOUR_EMAILJS_SERVICE_ID';
+const EMAILJS_TEMPLATE_ID = 'PASTE_YOUR_EMAILJS_TEMPLATE_ID';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  FireDB — drop-in replacement for Auth.getData / Auth.saveData

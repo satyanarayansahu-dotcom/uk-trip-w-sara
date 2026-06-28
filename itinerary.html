@@ -547,7 +547,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="firebase-config.js"></script>
+<script>if (typeof emailjs !== 'undefined') emailjs.init(EMAILJS_PUBLIC_KEY);</script>
 <script src="auth.js"></script>
 <script>
 // ══════════════════════════════════════════════

@@ -161,6 +161,23 @@
       grantedBy:    admin.uid,
     };
     await saveUserDoc(uid, userDoc);
+
+    // Send welcome email if EmailJS is configured
+    try {
+      if (typeof emailjs !== 'undefined' && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID) {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+          to_name:       name.trim(),
+          to_email:      normalEmail,
+          temp_password: tempPassword,
+          admin_name:    admin.name,
+          role:          role.charAt(0).toUpperCase() + role.slice(1),
+          login_url:     window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/login.html'),
+        });
+      }
+    } catch(emailErr) {
+      console.warn('Welcome email failed (non-fatal):', emailErr);
+    }
+
     return { uid, ...userDoc };
   }
 
@@ -177,7 +194,26 @@
     if (_currentUser && _currentUser.uid === uid) _currentUser.role = newRole;
   }
 
-  // ── Data helpers (shared trip data in Firestore via FireDB) ──────────────
+  // ── Update profile (name + phone) ────────────────────────────────────────
+  async function updateProfile(name, phone) {
+    const user = await refreshCurrentUser();
+    if (!user) throw new Error('Not logged in.');
+    await saveUserDoc(user.uid, { name: name.trim(), phone: (phone || '').trim() });
+    _currentUser = { ..._currentUser, name: name.trim(), phone: (phone || '').trim() };
+  }
+
+  // ── Change password ───────────────────────────────────────────────────────
+  async function changePassword(currentPwd, newPwd) {
+    const user = await refreshCurrentUser();
+    if (!user) throw new Error('Not logged in.');
+    const currentHash = await hashPassword(currentPwd);
+    if (currentHash !== user.passwordHash) throw new Error('Current password is incorrect.');
+    const newHash = await hashPassword(newPwd);
+    await saveUserDoc(user.uid, { passwordHash: newHash });
+    _currentUser = { ..._currentUser, passwordHash: newHash };
+  }
+
+
   // These are now thin wrappers over FireDB so call sites in itinerary.html
   // need no change.
   async function getData(key, fallback) {
@@ -222,6 +258,7 @@
           <div style="font-size:11px;color:var(--muted,#8b949e);margin-top:1px">${u.email||''}</div>
         </div>
         ${u.role === 'admin' ? '<a class="auth-menu-item" href="itinerary.html#access">👥 Manage Access</a>' : ''}
+        <a class="auth-menu-item" href="profile.html">👤 My Profile</a>
         <div class="auth-menu-item auth-signout" onclick="Auth.logout()">🚪 Sign out</div>
       </div>`;
     el.appendChild(chip);
@@ -297,6 +334,7 @@
     canEdit, isAdmin,
     storageKey, getData, saveData,
     grantAccess, revokeAccess, updateRole,
+    updateProfile, changePassword,
     loadUsers, loadUsersAsync,
     renderUserChip, injectChipStyles,
   };
