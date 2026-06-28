@@ -538,6 +538,17 @@
       </div>
       <div id="access-users-list"></div>
     </div>
+
+    <div class="card" style="border-color:rgba(248,81,73,.3)">
+      <div class="card-head">
+        <div class="card-title" style="color:#f85149">Danger zone</div>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px">
+        Permanently deletes all flights, accommodation, car rental, itinerary, packing list, contacts and passport data for this trip. The trip itself and its settings are kept.
+      </div>
+      <button class="btn btn-danger" onclick="clearAllTripData()">🗑 Clear all trip data</button>
+      <div id="clear-result" style="margin-top:10px;font-size:13px;display:none"></div>
+    </div>
   </div>
 
 </div>
@@ -1233,6 +1244,33 @@ async function inviteUser() {
 // ══════════════════════════════════════════════
 //  ROLE ENFORCEMENT — hide write controls for non-editors
 // ══════════════════════════════════════════════
+async function clearAllTripData() {
+  const tripId = Auth.getActiveTrip();
+  if (!tripId) { alert('No active trip.'); return; }
+  if (!confirm('Delete ALL data for this trip? Flights, accommodation, car, itinerary, packing list, contacts and passports will be permanently removed. This cannot be undone.')) return;
+
+  const resultEl = document.getElementById('clear-result');
+  resultEl.style.display = 'none';
+
+  const SECTIONS = ['flights','passports','accom','car','itinerary','checklist','contacts'];
+  try {
+    await Promise.all(SECTIONS.map(s =>
+      db.collection('trips').doc(tripId).collection('data').doc(s).delete().catch(() => {})
+    ));
+    // Reset in-memory state
+    SECTIONS.forEach(k => { STATE[k] = []; });
+    renderFlights(); renderPassports(); renderAccom(); renderCar();
+    renderItinerary(); renderChecklist(); renderContacts();
+    resultEl.textContent = '✅ All trip data cleared.';
+    resultEl.style.color = '#3fb950';
+    resultEl.style.display = 'block';
+  } catch(e) {
+    resultEl.textContent = '❌ Error: ' + e.message;
+    resultEl.style.color = '#f85149';
+    resultEl.style.display = 'block';
+  }
+}
+
 function enforceRole() {
   const edit = Auth.canEdit();
   const admin = Auth.isAdmin();
