@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create account · UK Road Trip</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      color: #fff;
+    }
+    /* Jurassic Coast / Dorset — matches the trip */
+    .bg {
+      position: fixed; inset: 0; z-index: 0;
+      background-image: url('https://images.unsplash.com/photo-1500313830540-7b6650a74fd0?w=1920&auto=format&fit=crop&q=85');
+      background-size: cover; background-position: center 45%;
+    }
+    .bg-overlay {
+      position: fixed; inset: 0; z-index: 1;
+      background: linear-gradient(160deg, rgba(5,18,10,0.78) 0%, rgba(5,18,10,0.48) 50%, rgba(5,18,10,0.82) 100%);
+    }
+    .card {
+      position: relative; z-index: 2;
+      width: 100%; max-width: 420px;
+      backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 20px;
+      padding: 40px 36px;
+      box-shadow: 0 16px 56px rgba(0,0,0,0.45);
+    }
+    .logo { text-align: center; margin-bottom: 28px; }
+    .logo-flag { font-size: 36px; }
+    .logo-title { font-size: 20px; font-weight: 900; margin-top: 8px; letter-spacing: -0.5px; }
+    .logo-title em { font-style: normal; color: #a5d6a7; }
+    .logo-sub { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 4px; }
+
+    h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .sub { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 24px; }
+
+    .first-user-note {
+      background: rgba(165,214,167,.12);
+      border: 1px solid rgba(165,214,167,.30);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #a5d6a7;
+      margin-bottom: 18px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: rgba(255,255,255,0.60); margin-bottom: 6px; }
+    input {
+      width: 100%;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      padding: 11px 14px;
+      font-family: inherit;
+      transition: border-color .15s, background .15s;
+      outline: none;
+    }
+    input::placeholder { color: rgba(255,255,255,0.30); }
+    input:focus { border-color: #a5d6a7; background: rgba(255,255,255,0.14); }
+
+    .btn-primary {
+      width: 100%; padding: 13px;
+      background: #3fb950; color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      margin-top: 8px;
+    }
+    .btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    .error-msg {
+      background: rgba(248,81,73,.15); border: 1px solid rgba(248,81,73,.35);
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 13px; color: #f85149; margin-bottom: 16px; display: none;
+    }
+    .error-msg.show { display: block; }
+
+    .divider { text-align: center; margin: 20px 0 0; font-size: 13px; color: rgba(255,255,255,0.45); }
+    .divider a { color: #a5d6a7; text-decoration: none; font-weight: 600; }
+    .divider a:hover { text-decoration: underline; }
+
+    .strength-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,.12); margin-top: 6px; overflow: hidden; }
+    .strength-fill { height: 100%; border-radius: 2px; transition: width .3s, background .3s; width: 0%; }
+
+    .photo-credit { position: fixed; bottom: 12px; right: 16px; z-index: 10; font-size: 10px; color: rgba(255,255,255,0.25); }
+  </style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="bg-overlay"></div>
+<div class="photo-credit">📷 Jurassic Coast, Dorset · Unsplash</div>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-flag">🇬🇧</div>
+    <div class="logo-title">The <em>Great British</em> Road Trip</div>
+    <div class="logo-sub">July 2026 · Singapore → UK → Singapore</div>
+  </div>
+
+  <h2>Create your account</h2>
+  <div class="sub" id="register-sub">Join the trip</div>
+
+  <div class="first-user-note" id="first-user-note" style="display:none">
+    🎉 You'll be the <strong>Admin</strong> — the first account created becomes the trip owner and can invite others.
+  </div>
+
+  <div class="error-msg" id="error-msg"></div>
+
+  <form id="register-form" onsubmit="return false">
+    <div class="form-group">
+      <label>Full name</label>
+      <input type="text" id="name" placeholder="Sara Lim" required autocomplete="name"/>
+    </div>
+    <div class="form-group">
+      <label>Email address</label>
+      <input type="email" id="email" placeholder="you@example.com" required autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Min. 6 characters" required autocomplete="new-password" oninput="checkStrength(this.value)"/>
+      <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+    </div>
+    <div class="form-group">
+      <label>Confirm password</label>
+      <input type="password" id="confirm" placeholder="Repeat password" required autocomplete="new-password"/>
+    </div>
+    <button class="btn-primary" id="register-btn" type="submit">Create account</button>
+  </form>
+
+  <div class="divider">Already have an account? <a href="login.html">Sign in →</a></div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+  // Already logged in → skip to home
+  if (Auth.getCurrentUser()) window.location.href = 'home.html';
+
+  // Show "first user = admin" note if no users yet
+  const users = Auth.loadUsers();
+  if (users.length === 0) {
+    document.getElementById('first-user-note').style.display = 'block';
+    document.getElementById('register-sub').textContent = 'Set up the trip as Admin';
+  }
+
+  function checkStrength(pwd) {
+    const fill = document.getElementById('strength-fill');
+    let score = 0;
+    if (pwd.length >= 6)  score++;
+    if (pwd.length >= 10) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    const pct = (score / 5) * 100;
+    const col = score <= 1 ? '#f85149' : score <= 3 ? '#d29922' : '#3fb950';
+    fill.style.width = pct + '%';
+    fill.style.background = col;
+  }
+
+  document.getElementById('register-form').addEventListener('submit', async () => {
+    const name     = document.getElementById('name').value.trim();
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirm  = document.getElementById('confirm').value;
+    const btn      = document.getElementById('register-btn');
+    const errEl    = document.getElementById('error-msg');
+
+    errEl.classList.remove('show');
+
+    if (!name) { errEl.textContent = 'Please enter your name.'; errEl.classList.add('show'); return; }
+    if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.classList.add('show'); return; }
+    if (password !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.classList.add('show'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Creating account…';
+
+    try {
+      await Auth.register(name, email, password);
+      window.location.href = 'home.html';
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Create account';
+    }
+  });
+</script>
+</body>
+</html>

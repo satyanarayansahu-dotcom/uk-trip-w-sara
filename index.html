@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3248;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --accent3: #ff6b6b;
+      --accent4: #ffd166;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --up: #00d4aa;
+      --down: #ff6b6b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ─────────────────────────────────── */
+    .app { display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar-logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      padding: 0 8px 20px;
+      letter-spacing: -0.5px;
+    }
+    .sidebar-logo span { color: var(--text); }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--muted);
+      transition: background 0.15s, color 0.15s;
+      user-select: none;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: var(--accent); color: #fff; }
+    .nav-item svg { flex-shrink: 0; }
+    .sidebar-spacer { flex: 1; }
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--surface2);
+    }
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; color: #fff;
+    }
+    .user-name { font-weight: 600; font-size: 13px; }
+    .user-role { color: var(--muted); font-size: 11px; }
+
+    /* Main */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .topbar-title { font-size: 17px; font-weight: 700; }
+    .topbar-actions { display: flex; align-items: center; gap: 12px; }
+
+    .range-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 4px;
+    }
+    .range-tab {
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .range-tab.active { background: var(--accent); color: #fff; }
+    .range-tab:hover:not(.active) { color: var(--text); }
+
+    .btn {
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--accent);
+      color: #fff;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+
+    .content { padding: 24px 28px; overflow-y: auto; flex: 1; }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .kpi-label { color: var(--muted); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-value { font-size: 28px; font-weight: 800; margin: 8px 0 6px; letter-spacing: -1px; }
+    .kpi-delta {
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .kpi-delta.up { color: var(--up); }
+    .kpi-delta.down { color: var(--down); }
+    .kpi-bar {
+      height: 3px;
+      border-radius: 2px;
+      background: var(--border);
+      margin-top: 14px;
+      overflow: hidden;
+    }
+    .kpi-bar-fill { height: 100%; border-radius: 2px; }
+
+    /* Chart grid */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .chart-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .card-title { font-weight: 700; font-size: 14px; }
+    .card-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+    .badge-up { background: rgba(0,212,170,0.15); color: var(--up); }
+    .badge-down { background: rgba(255,107,107,0.15); color: var(--down); }
+
+    canvas { max-height: 240px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 12px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+    .status::before {
+      content: "";
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .status-active { background: rgba(0,212,170,0.12); color: var(--up); }
+    .status-pending { background: rgba(255,209,102,0.12); color: var(--accent4); }
+    .status-inactive { background: rgba(255,107,107,0.12); color: var(--down); }
+
+    /* Progress bars inline */
+    .prog { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; width: 80px; }
+    .prog-fill { height: 100%; border-radius: 3px; }
+
+    /* Sparkline mini charts */
+    .spark-wrap { display: flex; gap: 12px; margin-top: 8px; }
+    .spark { flex: 1; }
+    .spark-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .spark-value { font-size: 16px; font-weight: 700; }
+    .spark canvas { max-height: 48px !important; }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .chart-grid { grid-template-columns: 1fr; }
+      .chart-grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<script src="auth.js"></script>
+<script>Auth.injectChipStyles(); Auth.requireAuth();</script>
+<div class="app">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">Dash<span>board</span></div>
+
+    <div class="nav-item active">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Overview
+    </div>
+    <div class="nav-item" onclick="this.closest('.sidebar').querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));this.classList.add('active')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Analytics
+    </div>
+    <div class="nav-item" onclick="this.closest('.sidebar').querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));this.classList.add('active')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Users
+    </div>
+    <div class="nav-item" onclick="this.closest('.sidebar').querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));this.classList.add('active')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Revenue
+    </div>
+    <div class="nav-item" onclick="this.closest('.sidebar').querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));this.classList.add('active')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Reports
+    </div>
+    <div class="nav-item" onclick="this.closest('.sidebar').querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));this.classList.add('active')">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </div>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="sidebar-user">
+      <div class="avatar">S</div>
+      <div>
+        <div class="user-name">Sara</div>
+        <div class="user-role">Admin</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-title">Overview</div>
+      <div class="topbar-actions">
+        <div class="range-tabs">
+          <div class="range-tab" onclick="setRange('1D',this)">1D</div>
+          <div class="range-tab" onclick="setRange('7D',this)">7D</div>
+          <div class="range-tab active" onclick="setRange('30D',this)">30D</div>
+          <div class="range-tab" onclick="setRange('90D',this)">90D</div>
+        </div>
+        <button class="btn">+ Export</button>
+        <div id="user-chip-anchor"></div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Revenue</div>
+          <div class="kpi-value" id="kpi-rev">$84,240</div>
+          <div class="kpi-delta up">▲ 12.4% vs last period</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:72%;background:var(--accent)"></div></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Active Users</div>
+          <div class="kpi-value" id="kpi-users">3,812</div>
+          <div class="kpi-delta up">▲ 8.1% vs last period</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:58%;background:var(--accent2)"></div></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Conversions</div>
+          <div class="kpi-value" id="kpi-conv">6.38%</div>
+          <div class="kpi-delta down">▼ 1.2% vs last period</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:38%;background:var(--accent3)"></div></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg. Session</div>
+          <div class="kpi-value" id="kpi-sess">4m 12s</div>
+          <div class="kpi-delta up">▲ 5.7% vs last period</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:65%;background:var(--accent4)"></div></div>
+        </div>
+      </div>
+
+      <!-- Main chart + donut -->
+      <div class="chart-grid">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Revenue over time</div>
+              <div class="card-sub">Daily revenue for the period</div>
+            </div>
+            <span class="badge badge-up">+12.4%</span>
+          </div>
+          <canvas id="lineChart"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Traffic sources</div>
+              <div class="card-sub">Where users come from</div>
+            </div>
+          </div>
+          <canvas id="donutChart"></canvas>
+          <div id="donut-legend" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;font-size:12px;"></div>
+        </div>
+      </div>
+
+      <!-- Bar + sparklines -->
+      <div class="chart-grid">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Sessions by day</div>
+              <div class="card-sub">Last 7 days</div>
+            </div>
+            <span class="badge badge-up">+8.1%</span>
+          </div>
+          <canvas id="barChart"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Goal progress</div>
+              <div class="card-sub">Current period targets</div>
+            </div>
+          </div>
+          <div id="goals"></div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Top pages</div>
+            <div class="card-sub">Most visited this period</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Page</th>
+                <th>Views</th>
+                <th>Bounce rate</th>
+                <th>Avg. time</th>
+                <th>Engagement</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ── Shared chart defaults ────────────────────────
+Chart.defaults.color = '#8892a4';
+Chart.defaults.borderColor = '#2e3248';
+Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+const ACCENT  = '#6c63ff';
+const ACCENT2 = '#00d4aa';
+const ACCENT3 = '#ff6b6b';
+const ACCENT4 = '#ffd166';
+const SURFACE = '#1a1d27';
+
+// ── Helper ───────────────────────────────────────
+function rand(min, max, n) {
+  return Array.from({length: n}, () => Math.floor(Math.random() * (max - min + 1)) + min);
+}
+function labels30() {
+  const out = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    out.push(d.toLocaleDateString('en', {month:'short', day:'numeric'}));
+  }
+  return out;
+}
+function labels7() {
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return Array.from({length:7}, (_,i) => {
+    const d = new Date(); d.setDate(d.getDate() - 6 + i);
+    return days[d.getDay()];
+  });
+}
+
+// ── Line chart ───────────────────────────────────
+const lineData = rand(1200, 5200, 30);
+const lineCtx = document.getElementById('lineChart').getContext('2d');
+const gradient = lineCtx.createLinearGradient(0, 0, 0, 240);
+gradient.addColorStop(0, 'rgba(108,99,255,0.35)');
+gradient.addColorStop(1, 'rgba(108,99,255,0)');
+
+const lineChart = new Chart(lineCtx, {
+  type: 'line',
+  data: {
+    labels: labels30(),
+    datasets: [{
+      data: lineData,
+      borderColor: ACCENT,
+      backgroundColor: gradient,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: ACCENT,
+      tension: 0.4,
+      fill: true,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+      y: { grid: { color: '#2e3248' }, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k' } }
+    }
+  }
+});
+
+// ── Donut chart ──────────────────────────────────
+const donutCtx = document.getElementById('donutChart').getContext('2d');
+const donutLabels = ['Organic', 'Direct', 'Social', 'Email', 'Paid'];
+const donutValues = [38, 24, 18, 12, 8];
+const donutColors = [ACCENT, ACCENT2, ACCENT4, '#e07bff', ACCENT3];
+
+new Chart(donutCtx, {
+  type: 'doughnut',
+  data: {
+    labels: donutLabels,
+    datasets: [{ data: donutValues, backgroundColor: donutColors, borderWidth: 2, borderColor: SURFACE, hoverOffset: 6 }]
+  },
+  options: {
+    responsive: true,
+    cutout: '68%',
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}%` } }
+    }
+  }
+});
+
+// Build legend
+const legendEl = document.getElementById('donut-legend');
+donutLabels.forEach((l, i) => {
+  legendEl.innerHTML += `<div style="display:flex;align-items:center;gap:5px">
+    <span style="width:10px;height:10px;border-radius:50%;background:${donutColors[i]};flex-shrink:0"></span>
+    <span style="color:#8892a4">${l}</span>
+    <strong>${donutValues[i]}%</strong>
+  </div>`;
+});
+
+// ── Bar chart ────────────────────────────────────
+new Chart(document.getElementById('barChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: labels7(),
+    datasets: [{
+      data: rand(800, 3200, 7),
+      backgroundColor: ACCENT + 'cc',
+      hoverBackgroundColor: ACCENT,
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: '#2e3248' }, ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(1)+'k' : v } }
+    }
+  }
+});
+
+// ── Goals ────────────────────────────────────────
+const goals = [
+  { label: 'Monthly revenue', current: 84240, target: 100000, color: ACCENT },
+  { label: 'New signups',     current: 1840,  target: 2500,   color: ACCENT2 },
+  { label: 'NPS score',       current: 72,    target: 80,     color: ACCENT4 },
+  { label: 'Support tickets', current: 34,    target: 50,     color: ACCENT3 },
+];
+const goalsEl = document.getElementById('goals');
+goals.forEach(g => {
+  const pct = Math.round((g.current / g.target) * 100);
+  const fmt = v => v >= 1000 ? '$' + (v/1000).toFixed(0) + 'k' : v;
+  goalsEl.innerHTML += `
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:13px">${g.label}</span>
+        <span style="font-size:12px;color:var(--muted)">${fmt(g.current)} / ${fmt(g.target)}</span>
+      </div>
+      <div style="height:8px;border-radius:4px;background:var(--border);overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${g.color};border-radius:4px;transition:width 1s"></div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:var(--muted);margin-top:3px">${pct}%</div>
+    </div>`;
+});
+
+// ── Table ────────────────────────────────────────
+const pages = [
+  { page: '/dashboard',     views: 12480, bounce: '22%', time: '5m 14s', eng: 88, status: 'active' },
+  { page: '/analytics',     views: 8930,  bounce: '31%', time: '4m 02s', eng: 74, status: 'active' },
+  { page: '/users',         views: 6210,  bounce: '18%', time: '6m 45s', eng: 91, status: 'active' },
+  { page: '/revenue',       views: 4880,  bounce: '28%', time: '3m 30s', eng: 67, status: 'pending' },
+  { page: '/settings',      views: 3210,  bounce: '44%', time: '2m 10s', eng: 45, status: 'active' },
+  { page: '/onboarding',    views: 2940,  bounce: '52%', time: '1m 55s', eng: 38, status: 'inactive' },
+  { page: '/integrations',  views: 1820,  bounce: '37%', time: '3m 20s', eng: 58, status: 'pending' },
+];
+const tbody = document.getElementById('table-body');
+pages.forEach(r => {
+  const statusClass = { active: 'status-active', pending: 'status-pending', inactive: 'status-inactive' }[r.status];
+  tbody.innerHTML += `<tr>
+    <td style="font-weight:600">${r.page}</td>
+    <td>${r.views.toLocaleString()}</td>
+    <td>${r.bounce}</td>
+    <td>${r.time}</td>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="prog"><div class="prog-fill" style="width:${r.eng}%;background:${r.eng>70?'var(--up)':r.eng>45?'var(--accent4)':'var(--down)'}"></div></div>
+        <span style="font-size:12px;color:var(--muted)">${r.eng}%</span>
+      </div>
+    </td>
+    <td><span class="status ${statusClass}">${r.status}</span></td>
+  </tr>`;
+});
+
+// ── Range tab interaction ────────────────────────
+function setRange(range, el) {
+  document.querySelectorAll('.range-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  // Regenerate line chart data to simulate range change
+  const n = { '1D': 24, '7D': 7, '30D': 30, '90D': 90 }[range];
+  const newData = rand(800, 6000, n);
+  lineChart.data.labels = n === 24
+    ? Array.from({length:24}, (_,i) => `${i}:00`)
+    : n === 7 ? labels7()
+    : n === 90 ? Array.from({length:90}, (_,i) => { const d=new Date(); d.setDate(d.getDate()-89+i); return d.toLocaleDateString('en',{month:'short',day:'numeric'}); })
+    : labels30();
+  lineChart.data.datasets[0].data = newData;
+  lineChart.update();
+}
+</script>
+<script>Auth.renderUserChip('#user-chip-anchor');</script>
+</body>
+</html>

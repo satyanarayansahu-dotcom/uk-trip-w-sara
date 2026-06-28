@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UK Road Trip · July 2026</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      color: #fff;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Single London photo ─────────────────── */
+    .bg {
+      position: fixed;
+      inset: 0;
+      background-image: url('https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1920&auto=format&fit=crop&q=85');
+      background-size: cover;
+      background-position: center 42%;
+      z-index: 0;
+    }
+    /* Overlay: darker at top/bottom so text reads clearly, lighter in
+       the middle so the London skyline still shows through */
+    .bg-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(
+        180deg,
+        rgba(8,20,40,0.75) 0%,
+        rgba(8,20,40,0.35) 38%,
+        rgba(8,20,40,0.42) 62%,
+        rgba(8,20,40,0.80) 100%
+      );
+      z-index: 1;
+    }
+
+    /* ── Page ────────────────────────────────── */
+    .page {
+      position: relative;
+      z-index: 2;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px 60px;
+    }
+
+    /* ── Hero ────────────────────────────────── */
+    .hero { text-align: center; margin-bottom: 28px; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.72);
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.22);
+      backdrop-filter: blur(8px);
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: clamp(32px, 6vw, 60px);
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      line-height: 1.08;
+      text-shadow: 0 2px 24px rgba(0,0,0,0.55);
+    }
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(90deg, #90caf9, #4dd0e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-dates {
+      margin-top: 10px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.62);
+    }
+
+    /* ── Dynamic route ───────────────────────── */
+    .route-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 4px 3px;
+      margin-top: 16px;
+      font-size: 13px;
+      font-weight: 600;
+      min-height: 24px;
+    }
+    .route-city  { color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,0.4); }
+    .route-arrow { color: #90caf9; font-size: 11px; }
+
+    /* ── Countdown ───────────────────────────── */
+    .cd-pre {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.48);
+      text-align: center;
+      margin-bottom: 8px;
+      margin-top: 4px;
+    }
+    .countdown { display: flex; gap: 10px; justify-content: center; margin-bottom: 26px; }
+    .cd {
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.24);
+      border-radius: 14px;
+      padding: 14px 18px;
+      text-align: center;
+      min-width: 66px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.22);
+    }
+    .cd-val {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #fff;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.25);
+    }
+    .cd-lbl {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      color: rgba(255,255,255,0.48);
+      margin-top: 3px;
+    }
+
+    /* ── Facts pills ─────────────────────────── */
+    .facts {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+    .fact {
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.78);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* ── Nav cards ───────────────────────────── */
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      width: 100%;
+      max-width: 580px;
+    }
+    .nav-card {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(255,255,255,0.11);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 18px;
+      padding: 26px 22px;
+      text-decoration: none;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: background .2s, border-color .2s, transform .2s, box-shadow .2s;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.28);
+    }
+    .nav-card:hover {
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(255,255,255,0.40);
+      transform: translateY(-4px);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.38);
+    }
+    .nav-card-icon { font-size: 32px; }
+    .nav-card-title { font-size: 19px; font-weight: 800; }
+    .nav-card-desc { font-size: 12px; color: rgba(255,255,255,0.62); line-height: 1.6; }
+    .nav-card-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+    .tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.62);
+    }
+    .nav-card-arrow {
+      margin-top: auto;
+      font-size: 16px;
+      color: rgba(255,255,255,0.38);
+      transition: transform .15s, color .15s;
+    }
+    .nav-card:hover .nav-card-arrow { transform: translateX(5px); color: rgba(255,255,255,0.90); }
+
+    .photo-credit {
+      position: fixed;
+      bottom: 12px;
+      right: 16px;
+      z-index: 10;
+      font-size: 10px;
+      color: rgba(255,255,255,0.28);
+    }
+
+    @media (max-width: 500px) {
+      .cards { grid-template-columns: 1fr; max-width: 340px; }
+      .cd { padding: 10px 12px; min-width: 56px; }
+      .cd-val { font-size: 22px; }
+      h1 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="bg-overlay"></div>
+<div class="photo-credit">📷 London · Unsplash</div>
+
+<!-- user chip top-right -->
+<div id="user-chip-anchor" style="position:fixed;top:14px;right:18px;z-index:50"></div>
+
+<div class="page">
+
+  <div class="hero">
+    <div class="eyebrow">🇬🇧 &nbsp;Summer 2026</div>
+    <h1>The <em>Great British</em><br>Road Trip</h1>
+    <div class="hero-dates" id="hero-dates">July 2026</div>
+    <div class="route-strip" id="route-strip"></div>
+  </div>
+
+  <div class="cd-pre">Departure countdown</div>
+  <div class="countdown">
+    <div class="cd"><div class="cd-val" id="cd-d">—</div><div class="cd-lbl">Days</div></div>
+    <div class="cd"><div class="cd-val" id="cd-h">—</div><div class="cd-lbl">Hours</div></div>
+    <div class="cd"><div class="cd-val" id="cd-m">—</div><div class="cd-lbl">Mins</div></div>
+    <div class="cd"><div class="cd-val" id="cd-s">—</div><div class="cd-lbl">Secs</div></div>
+  </div>
+
+  <div class="facts" id="facts-strip"></div>
+
+  <div class="cards">
+    <a href="itinerary.html" class="nav-card">
+      <div class="nav-card-icon">✏️</div>
+      <div class="nav-card-title">Manage</div>
+      <div class="nav-card-desc">Edit flights, travellers, passports, accommodation, car rental, itinerary and packing.</div>
+      <div class="nav-card-tags">
+        <span class="tag">Flights</span>
+        <span class="tag">Passports</span>
+        <span class="tag">Accommodation</span>
+        <span class="tag">Packing</span>
+      </div>
+      <div class="nav-card-arrow">→</div>
+    </a>
+    <a href="view.html" class="nav-card">
+      <div class="nav-card-icon">🗺️</div>
+      <div class="nav-card-title">View</div>
+      <div class="nav-card-desc">Full itinerary dashboard — timeline, all bookings, costs and packing progress.</div>
+      <div class="nav-card-tags">
+        <span class="tag">Timeline</span>
+        <span class="tag">Costs</span>
+        <span class="tag">Route map</span>
+        <span class="tag">Countdown</span>
+      </div>
+      <div class="nav-card-arrow">→</div>
+    </a>
+  </div>
+
+</div>
+
+<script src="auth.js"></script>
+<script>
+// ── Read itinerary from localStorage (or fallback) ──
+const DEFAULT_ITIN = [
+  { date:'2026-07-03', location:'Singapore' },
+  { date:'2026-07-04', location:'London' },
+  { date:'2026-07-05', location:'London' },
+  { date:'2026-07-06', location:'London' },
+  { date:'2026-07-07', location:'London' },
+  { date:'2026-07-08', location:'Brighton' },
+  { date:'2026-07-10', location:'West Lulworth' },
+  { date:'2026-07-11', location:'West Lulworth' },
+  { date:'2026-07-12', location:'Bath' },
+  { date:'2026-07-13', location:'Bath' },
+  { date:'2026-07-14', location:'Bath' },
+  { date:'2026-07-15', location:'Bath' },
+  { date:'2026-07-16', location:'Bath' },
+  { date:'2026-07-17', location:'London' },
+  { date:'2026-07-18', location:'Singapore' },
+];
+const DEFAULT_ACCOM = [
+  { location:'London',       checkin:'2026-07-04', checkout:'2026-07-08' },
+  { location:'Brighton',     checkin:'2026-07-08', checkout:'2026-07-09' },
+  { location:'West Lulworth',checkin:'2026-07-10', checkout:'2026-07-12' },
+  { location:'Bath',         checkin:'2026-07-12', checkout:'2026-07-17' },
+];
+
+function ls(key, fallback) {
+  try { const d = localStorage.getItem('itin_' + key); return d ? JSON.parse(d) : fallback; }
+  catch { return fallback; }
+}
+
+function fmtD(d) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+}
+
+// ── Route strip — unique locations in date order from itinerary ──
+function buildRoute() {
+  const itin = ls('itinerary', DEFAULT_ITIN);
+  const seen = new Set(), ordered = [];
+  [...itin]
+    .sort((a, b) => (a.date||'') < (b.date||'') ? -1 : 1)
+    .forEach(d => {
+      const loc = (d.location || '').trim();
+      if (!loc || loc.includes('→') || loc.includes('->')) return;
+      if (!seen.has(loc)) { seen.add(loc); ordered.push(loc); }
+    });
+  if (!ordered.length) return;
+  const parts = [];
+  ordered.forEach((c, i) => {
+    parts.push(`<span class="route-city">${c}</span>`);
+    if (i < ordered.length - 1) parts.push(`<span class="route-arrow">→</span>`);
+  });
+  document.getElementById('route-strip').innerHTML = parts.join('');
+}
+
+// ── Dates subtitle ────────────────────────────
+function buildDates() {
+  const itin = ls('itinerary', DEFAULT_ITIN);
+  const sorted = [...itin].filter(d => d.date).sort((a,b) => a.date < b.date ? -1 : 1);
+  if (sorted.length >= 2) {
+    document.getElementById('hero-dates').textContent =
+      fmtD(sorted[0].date) + ' – ' + fmtD(sorted[sorted.length-1].date) + ' 2026';
+  }
+}
+
+// ── Facts strip ───────────────────────────────
+function buildFacts() {
+  const accom   = ls('accom', DEFAULT_ACCOM);
+  const totalNights = accom.reduce((s, a) => {
+    if (!a.checkin || !a.checkout) return s;
+    return s + Math.max(0, Math.round((new Date(a.checkout) - new Date(a.checkin)) / 86400000));
+  }, 0);
+  const dests = [...new Set(accom.map(a => a.location).filter(Boolean))].length;
+
+  const facts = [
+    { icon:'✈', text:'Qatar Airways' },
+    { icon:'📅', text:'3 Jul – 18 Jul 2026' },
+    { icon:'👥', text:'3 travellers' },
+    ...(totalNights ? [{ icon:'🌙', text: totalNights + ' nights' }] : []),
+    ...(dests ? [{ icon:'📍', text: dests + ' destination' + (dests !== 1 ? 's' : '') }] : []),
+    { icon:'🚗', text:'SIXT rental' },
+  ];
+  document.getElementById('facts-strip').innerHTML =
+    facts.map(f => `<div class="fact">${f.icon} ${f.text}</div>`).join('');
+}
+
+// ── Countdown ─────────────────────────────────
+const DEPART = new Date('2026-07-03T11:30:00Z');
+function tick() {
+  const diff = DEPART - new Date();
+  if (diff <= 0) { ['cd-d','cd-h','cd-m','cd-s'].forEach(id => document.getElementById(id).textContent = '0'); return; }
+  document.getElementById('cd-d').textContent = Math.floor(diff / 86400000);
+  document.getElementById('cd-h').textContent = Math.floor((diff % 86400000) / 3600000);
+  document.getElementById('cd-m').textContent = Math.floor((diff % 3600000) / 60000);
+  document.getElementById('cd-s').textContent = Math.floor((diff % 60000) / 1000);
+}
+tick(); setInterval(tick, 1000);
+
+buildRoute();
+buildDates();
+buildFacts();
+
+// Auth
+Auth.injectChipStyles();
+Auth.requireAuth();
+Auth.renderUserChip('#user-chip-anchor');
+</script>
+</body>
+</html>

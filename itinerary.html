@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UK Itinerary · Manager</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --surface2: #21262d;
+      --border:   #30363d;
+      --accent:   #58a6ff;
+      --green:    #3fb950;
+      --yellow:   #d29922;
+      --orange:   #f0883e;
+      --purple:   #bc8cff;
+      --pink:     #ff7b72;
+      --red:      #f85149;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --r:        10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ─────────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 56px;
+    }
+    .topbar-title {
+      font-weight: 800;
+      font-size: 16px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .topbar-title span { color: var(--accent); }
+
+    /* ── Custom dropdown ─────────────────────────── */
+    .dropdown-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .dropdown-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 7px 14px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      user-select: none;
+      transition: border-color .15s;
+      white-space: nowrap;
+    }
+    .dropdown-btn:hover { border-color: var(--accent); }
+    .dropdown-btn .arrow {
+      font-size: 10px;
+      color: var(--muted);
+      transition: transform .15s;
+    }
+    .dropdown-btn.open .arrow { transform: rotate(180deg); }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      min-width: 220px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      z-index: 200;
+    }
+    .dropdown-menu.open { display: block; }
+    .dd-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background .1s;
+    }
+    .dd-item:hover { background: var(--border); }
+    .dd-item.active { background: rgba(88,166,255,.12); color: var(--accent); }
+    .dd-item .dd-icon { font-size: 15px; width: 20px; text-align: center; }
+    .dd-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* ── Save indicator ──────────────────────────── */
+    .save-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--green);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: var(--r);
+      font-size: 12px;
+      font-weight: 700;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+      z-index: 999;
+    }
+    .save-toast.show { opacity: 1; }
+
+    /* ── Page layout ─────────────────────────────── */
+    .page { padding: 24px; max-width: 1100px; margin: 0 auto; }
+
+    /* ── Section panels ──────────────────────────── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── Card ───────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title::before {
+      content: '';
+      width: 3px; height: 14px;
+      border-radius: 2px;
+      background: var(--accent);
+    }
+
+    /* ── Buttons ─────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--r);
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .8; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-danger  { background: rgba(248,81,73,.15); color: var(--red); border: 1px solid rgba(248,81,73,.3); }
+    .btn-ghost   { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+
+    /* ── Form fields ─────────────────────────────── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    input, select, textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 8px 10px;
+      font-family: inherit;
+      transition: border-color .15s;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    textarea { resize: vertical; min-height: 64px; }
+    select option { background: var(--surface2); }
+
+    /* ── Table of rows ───────────────────────────── */
+    .row-list { display: flex; flex-direction: column; gap: 10px; }
+    .row-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+    .row-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .row-card-head:hover { background: rgba(255,255,255,.03); }
+    .row-card-label {
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .row-card-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .row-card-actions { display: flex; gap: 6px; align-items: center; }
+    .row-card-body {
+      display: none;
+      padding: 0 16px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .row-card-body.open { display: block; padding-top: 16px; }
+    .chevron {
+      font-size: 10px;
+      color: var(--muted);
+      transition: transform .15s;
+    }
+    .chevron.open { transform: rotate(180deg); }
+
+    /* ── Checklist ───────────────────────────────── */
+    .check-section { margin-bottom: 20px; }
+    .check-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .check-items { display: flex; flex-direction: column; gap: 1px; }
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 7px;
+      transition: background .1s;
+    }
+    .check-item:hover { background: var(--surface2); }
+    .check-item:hover .del-item { opacity: 1; }
+    .check-box {
+      width: 18px; height: 18px;
+      border-radius: 4px;
+      border: 1.5px solid var(--border);
+      flex-shrink: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .15s;
+    }
+    .check-box:hover { border-color: var(--green); }
+    .check-box.checked { background: var(--green); border-color: var(--green); }
+    .check-box.checked::after { content: '✓'; font-size: 11px; font-weight: 700; color: #fff; }
+    .check-item-text { flex: 1; font-size: 13px; }
+    .check-item-text.done { text-decoration: line-through; color: var(--muted); }
+    .check-qty { font-size: 11px; color: var(--muted); margin-right: 4px; }
+    .del-item {
+      opacity: 0;
+      background: none;
+      border: none;
+      color: var(--red);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 4px;
+      transition: opacity .15s;
+    }
+    .add-item-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .add-item-row input { flex: 1; }
+
+    /* ── Progress bar ────────────────────────────── */
+    .prog-bar-wrap { margin-top: 16px; }
+    .prog-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .prog-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border);
+      overflow: hidden;
+    }
+    .prog-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--green);
+      transition: width .3s;
+    }
+
+    /* ── Status badge ────────────────────────────── */
+    .status-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+    .s-confirmed { background: rgba(63,185,80,.12); color: var(--green); }
+    .s-pending   { background: rgba(210,153,34,.12); color: var(--yellow); }
+    .s-tbc       { background: rgba(139,148,158,.12); color: var(--muted); }
+
+    /* ── Responsive ──────────────────────────────── */
+    @media (max-width: 700px) {
+      .topbar { padding: 0 12px; gap: 10px; }
+      .page { padding: 12px; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── London background ───────────────────── */
+    .bg-photo {
+      position: fixed; inset: 0; z-index: -1;
+      background-image: url('https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1920&auto=format&fit=crop&q=80');
+      background-size: cover; background-position: center 42%;
+    }
+    .bg-photo-overlay {
+      position: fixed; inset: 0; z-index: -1;
+      background: rgba(8,20,40,0.90);
+    }
+  </style>
+</head>
+<body>
+<div class="bg-photo"></div>
+<div class="bg-photo-overlay"></div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+    <a href="home.html" style="display:flex;align-items:center;gap:5px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:600;padding:5px 10px;border-radius:8px;border:1px solid var(--border);transition:color .15s,border-color .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--muted)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">← Home</a>
+    <div class="topbar-title">🇬🇧 <span>UK Itinerary</span> · Manage</div>
+  </div>
+
+  <div class="dropdown-wrap" id="nav-dropdown">
+    <div class="dropdown-btn" id="dd-btn" onclick="toggleDD()">
+      <span id="dd-icon">✈</span>
+      <span id="dd-label">Flights</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="dropdown-menu" id="dd-menu">
+      <div class="dd-item active" data-section="flights"    onclick="switchSection('flights',    '✈',  'Flights',       this)"><span class="dd-icon">✈</span> Flights</div>
+      <div class="dd-item"       data-section="passports"  onclick="switchSection('passports',  '🛂', 'Passports',     this)"><span class="dd-icon">🛂</span> Passports</div>
+      <div class="dd-item"       data-section="accom"      onclick="switchSection('accom',      '🏨', 'Accommodation', this)"><span class="dd-icon">🏨</span> Accommodation</div>
+      <div class="dd-item"       data-section="car"        onclick="switchSection('car',        '🚗', 'Car Rental',    this)"><span class="dd-icon">🚗</span> Car Rental</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item"       data-section="itinerary"  onclick="switchSection('itinerary',  '🗓', 'Itinerary',     this)"><span class="dd-icon">🗓</span> Itinerary</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item"       data-section="checklist"  onclick="switchSection('checklist',  '✅', 'Packing List',  this)"><span class="dd-icon">✅</span> Packing List</div>
+      <div class="dd-item"       data-section="contacts"   onclick="switchSection('contacts',   '📞', 'Contacts',      this)"><span class="dd-icon">📞</span> Contacts</div>
+      <div class="dd-item" id="dd-access" data-section="access" onclick="switchSection('access','👥','Access',this)" style="display:none"><span class="dd-icon">👥</span> Access</div>
+    </div>
+  </div>
+
+  <!-- Right side: countdown + view link -->
+  <div style="display:flex;align-items:center;gap:14px;margin-left:auto">
+    <div style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <span>Departs in</span>
+      <strong id="top-countdown" style="color:var(--accent);font-size:13px">—</strong>
+    </div>
+    <a href="view.html" style="display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--green);font-size:12px;font-weight:700;padding:6px 14px;border-radius:8px;background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);white-space:nowrap;transition:background .15s" onmouseover="this.style.background='rgba(63,185,80,.2)'" onmouseout="this.style.background='rgba(63,185,80,.1)'">🗺️ View</a>
+    <div id="user-chip-anchor"></div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- ═══════════════════════════════════════════
+       FLIGHTS
+  ═══════════════════════════════════════════ -->
+  <div class="section active" id="sec-flights">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Flights</div>
+        <button class="btn btn-primary" onclick="addFlight()">+ Add flight</button>
+      </div>
+      <div class="row-list" id="flights-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PASSPORTS
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="sec-passports">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Passport Details</div>
+        <button class="btn btn-primary" onclick="addPassport()">+ Add traveller</button>
+      </div>
+      <div class="row-list" id="passports-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       ACCOMMODATION
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="sec-accom">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Accommodation</div>
+        <button class="btn btn-primary" onclick="addAccom()">+ Add stay</button>
+      </div>
+      <div class="row-list" id="accom-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       CAR RENTAL
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="sec-car">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Car Rental</div>
+        <button class="btn btn-primary" onclick="addCar()">+ Add rental</button>
+      </div>
+      <div class="row-list" id="car-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       ITINERARY
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="sec-itinerary">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Day-by-day Itinerary</div>
+        <button class="btn btn-primary" onclick="addDay()">+ Add day</button>
+      </div>
+      <div class="row-list" id="itinerary-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PACKING LIST
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="sec-checklist">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Packing List</div>
+        <button class="btn btn-ghost" onclick="addCategory()">+ Category</button>
+      </div>
+      <div id="checklist-body"></div>
+      <div class="prog-bar-wrap">
+        <div class="prog-bar-label">
+          <span style="color:var(--muted)">Overall progress</span>
+          <strong id="pack-pct" style="color:var(--green)">0%</strong>
+        </div>
+        <div class="prog-bar"><div class="prog-bar-fill" id="pack-prog-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       CONTACTS
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="sec-contacts">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Emergency &amp; Key Contacts</div>
+        <button class="btn btn-primary" onclick="addContact()">+ Add contact</button>
+      </div>
+      <div class="row-list" id="contacts-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       ACCESS  (admin only)
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="sec-access">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head">
+        <div class="card-title">Invite a traveller</div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Full name</label><input id="invite-name" placeholder="Sarah Lee"/></div>
+        <div class="form-group"><label>Email</label><input type="email" id="invite-email" placeholder="sarah@example.com"/></div>
+        <div class="form-group"><label>Role</label>
+          <select id="invite-role">
+            <option value="viewer">Viewer — read only</option>
+            <option value="editor">Editor — can edit itinerary &amp; packing</option>
+            <option value="admin">Admin — full access</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Temporary password</label><input type="text" id="invite-pwd" placeholder="They'll use this to log in"/></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="inviteUser()">+ Create account</button>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--text);cursor:pointer">
+          <input type="checkbox" id="share-data" style="width:auto;margin:0"/>
+          Copy my trip data to their account
+        </label>
+      </div>
+      <div id="invite-result" style="margin-top:12px;font-size:13px;display:none"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">All users</div>
+        <button class="btn btn-ghost" onclick="renderAccess()">↻ Refresh</button>
+      </div>
+      <div id="access-users-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="save-toast" id="toast">Saved ✓</div>
+
+<script src="auth.js"></script>
+<script>
+// ══════════════════════════════════════════════
+//  INITIAL DATA  (populated from Numbers file)
+// ══════════════════════════════════════════════
+const DEFAULTS = {
+  flights: [
+    { id: 1, carrier: 'Qatar Airways', flightNo: 'QR947', date: '2026-07-03', from: 'Singapore (T1)', dep: '19:30', to: 'Doha', arr: '22:00', ref: '1A/7CF6WM / QR/7CF6WM', cost: '4635', currency: 'SGD', status: 'confirmed', notes: 'Outbound leg 1',
+      travellers: [
+        { name: 'Traveller 1', seat: '', meal: '', baggage: '', ffn: '' },
+        { name: 'Traveller 2', seat: '', meal: '', baggage: '', ffn: '' },
+        { name: 'Traveller 3', seat: '', meal: '', baggage: '', ffn: '' },
+      ]},
+    { id: 2, carrier: 'Qatar Airways', flightNo: 'QR11',  date: '2026-07-04', from: 'Doha', dep: '01:10', to: 'London (Heathrow)', arr: '06:25', ref: '1A/7CF6WM / QR/7CF6WM', cost: '', currency: 'SGD', status: 'confirmed', notes: 'Outbound leg 2',
+      travellers: [
+        { name: 'Traveller 1', seat: '', meal: '', baggage: '', ffn: '' },
+        { name: 'Traveller 2', seat: '', meal: '', baggage: '', ffn: '' },
+        { name: 'Traveller 3', seat: '', meal: '', baggage: '', ffn: '' },
+      ]},
+    { id: 3, carrier: 'Qatar Airways', flightNo: 'QR12',  date: '2026-07-17', from: 'London (Heathrow T4)', dep: '19:25', to: 'Doha', arr: '04:10+1', ref: '', cost: '', currency: 'SGD', status: 'confirmed', notes: 'Return leg 1',
+      travellers: [
+        { name: 'Traveller 1', seat: '', meal: '', baggage: '', ffn: '' },
+        { name: 'Traveller 2', seat: '', meal: '', baggage: '', ffn: '' },
+        { name: 'Traveller 3', seat: '', meal: '', baggage: '', ffn: '' },
+      ]},
+    { id: 4, carrier: 'Qatar Airways', flightNo: 'QR944', date: '2026-07-18', from: 'Doha', dep: '08:05', to: 'Singapore (T1)', arr: '21:15', ref: '', cost: '', currency: 'SGD', status: 'confirmed', notes: 'Return leg 2',
+      travellers: [
+        { name: 'Traveller 1', seat: '', meal: '', baggage: '', ffn: '' },
+        { name: 'Traveller 2', seat: '', meal: '', baggage: '', ffn: '' },
+        { name: 'Traveller 3', seat: '', meal: '', baggage: '', ffn: '' },
+      ]},
+  ],
+  passports: [
+    { id: 1, name: '', relation: 'Self', nationality: '', passportNo: '', issueDate: '', expiryDate: '', dob: '', gender: '', placeOfBirth: '', issueCountry: '', visaRequired: 'No', visaStatus: '', notes: '' },
+    { id: 2, name: '', relation: 'Family', nationality: '', passportNo: '', issueDate: '', expiryDate: '', dob: '', gender: '', placeOfBirth: '', issueCountry: '', visaRequired: 'No', visaStatus: '', notes: '' },
+    { id: 3, name: '', relation: 'Family', nationality: '', passportNo: '', issueDate: '', expiryDate: '', dob: '', gender: '', placeOfBirth: '', issueCountry: '', visaRequired: 'No', visaStatus: '', notes: '' },
+  ],
+  accom: [
+    { id: 1, location: 'London', name: '2 Bedroom Serviced Apartment, Barbican & Old Street', checkin: '2026-07-04', checkout: '2026-07-08', concierge: '', phone: '+44 7958 533059', address: '58 Pear Tree Street, Islington, London, EC1V 3SB, United Kingdom', confNo: '5688554940', cost: '2109', currency: 'GBP', status: 'confirmed', notes: 'Booking.com' },
+    { id: 2, location: 'Brighton', name: 'Four Points Flex by Sheraton Brighton Seafront (Marriott)', checkin: '2026-07-08', checkout: '2026-07-09', concierge: '', phone: '+44-1273-820854', address: '139-141 Kings Road, Brighton, England BN1 2NA', confNo: '99571873', cost: '', currency: 'GBP', status: 'confirmed', notes: '' },
+    { id: 4, location: 'West Lulworth', name: 'Jurassic Bliss – stylish static caravan, partial sea view at Durdle Door', checkin: '2026-07-10', checkout: '2026-07-12', concierge: '', phone: '+44 7720 255619', address: 'Durdle Door Caravan Park, Wareham, BH20 5PU, United Kingdom', confNo: '5388842126', cost: '783', currency: 'GBP', status: 'confirmed', notes: 'Booking.com' },
+    { id: 5, location: 'Bath', name: 'TBC', checkin: '2026-07-12', checkout: '2026-07-17', concierge: '', phone: '', address: '', confNo: '', cost: '1534', currency: 'GBP', status: 'pending', notes: '' },
+  ],
+  car: [
+    { id: 1, company: 'SIXT', pickup: 'London Victoria Station', pickupDate: '2026-07-08', dropoff: 'London (TBC)', dropoffDate: '2026-07-17', confNo: '', cost: '1755', currency: 'GBP', status: 'confirmed', notes: '' },
+  ],
+  itinerary: [
+    { id: 1, date: '2026-07-03', location: 'Singapore → Doha', type: 'Travel', activity: 'Depart Singapore Changi T1 on QR947 at 19:30', notes: '' },
+    { id: 2, date: '2026-07-04', location: 'London', type: 'Arrive', activity: 'Arrive Heathrow 06:25 via QR11. Check in to Barbican apartment.', notes: '' },
+    { id: 3, date: '2026-07-05', location: 'London', type: 'Explore', activity: 'Explore London', notes: '' },
+    { id: 4, date: '2026-07-06', location: 'London', type: 'Explore', activity: 'Explore London', notes: '' },
+    { id: 5, date: '2026-07-07', location: 'London', type: 'Explore', activity: 'Explore London', notes: '' },
+    { id: 7, date: '2026-07-08', location: 'Brighton', type: 'Drive', activity: 'London → Brighton drive. Brighton Beach, seafront promenade. Pick up SIXT car.', notes: 'Best sunset at Seven Sisters' },
+    { id: 8, date: '2026-07-10', location: 'West Lulworth', type: 'Drive', activity: 'Brighton → Jurassic Coast. Durdle Door, Lulworth Cove, sunset at cliffs.', notes: '' },
+    { id: 9, date: '2026-07-11', location: 'West Lulworth', type: 'Explore', activity: 'Full day Jurassic Coast exploration. Stair Hole, coastal walks, optional boat trip.', notes: '' },
+    { id: 10, date: '2026-07-12', location: 'Bath', type: 'Drive', activity: 'Jurassic Coast → Bath. Corfe Castle, Stourhead Gardens, Bradford-on-Avon optional stops.', notes: '' },
+    { id: 11, date: '2026-07-13', location: 'Bath', type: 'Explore', activity: 'Explore Bath – Roman Baths, Georgian architecture', notes: '' },
+    { id: 12, date: '2026-07-14', location: 'Bath', type: 'Explore', activity: 'Explore Bath', notes: '' },
+    { id: 13, date: '2026-07-15', location: 'Bath', type: 'Explore', activity: 'Explore Bath', notes: '' },
+    { id: 14, date: '2026-07-16', location: 'Bath', type: 'Explore', activity: 'Explore Bath', notes: '' },
+    { id: 15, date: '2026-07-17', location: 'London Heathrow', type: 'Travel', activity: 'Bath → London Heathrow. Depart LHR T4 on QR12 at 19:25.', notes: '' },
+    { id: 16, date: '2026-07-18', location: 'Singapore', type: 'Arrive', activity: 'Arrive Singapore Changi T1 21:15 via QR944.', notes: '' },
+  ],
+  checklist: [
+    { category: 'Clothes', items: [
+      { text: 'Bathing Suits', qty: '4', checked: false },
+      { text: 'T-shirts', qty: '5', checked: false },
+      { text: 'Jeans / trousers', qty: '2', checked: false },
+      { text: 'Warm jacket / fleece', qty: '1', checked: false },
+      { text: 'Light waterproof', qty: '1', checked: false },
+      { text: 'Comfortable walking shoes', qty: '1', checked: false },
+      { text: 'Smart casual outfit', qty: '1', checked: false },
+      { text: 'Socks & underwear', qty: '7', checked: false },
+      { text: 'Pyjamas', qty: '1', checked: false },
+      { text: 'Sun hat', qty: '1', checked: false },
+      { text: 'Sunglasses', qty: '1', checked: false },
+      { text: 'Scarf', qty: '1', checked: false },
+    ]},
+    { category: 'Toiletries', items: [
+      { text: 'Sunscreen', qty: '1', checked: false },
+      { text: 'Shampoo & conditioner', qty: '1', checked: false },
+      { text: 'Body wash', qty: '1', checked: false },
+      { text: 'Toothbrush & paste', qty: '1', checked: false },
+      { text: 'Deodorant', qty: '1', checked: false },
+      { text: 'Moisturiser', qty: '1', checked: false },
+      { text: 'Lip balm', qty: '1', checked: false },
+      { text: 'Razor', qty: '1', checked: false },
+      { text: 'First aid kit', qty: '1', checked: false },
+      { text: 'Prescription medication', qty: '', checked: false },
+      { text: 'Paracetamol / ibuprofen', qty: '1', checked: false },
+    ]},
+    { category: 'Gadgets', items: [
+      { text: 'Phone charger', qty: '1', checked: false },
+      { text: 'Universal travel adaptor (UK type G)', qty: '1', checked: false },
+      { text: 'Power bank', qty: '1', checked: false },
+      { text: 'Camera + memory cards', qty: '1', checked: false },
+      { text: 'Laptop / tablet + charger', qty: '1', checked: false },
+      { text: 'Earphones / AirPods', qty: '1', checked: false },
+      { text: 'Car phone mount', qty: '1', checked: false },
+      { text: 'USB-C cables', qty: '2', checked: false },
+      { text: 'Portable speaker', qty: '1', checked: false },
+      { text: 'SIM card / roaming plan', qty: '', checked: false },
+    ]},
+  ],
+  contacts: [
+    { id: 1, name: 'Qatar Airways Reservations', phone: '', email: '', notes: '1A/7CF6WM · QR/7CF6WM' },
+    { id: 2, name: 'London Apartment Concierge', phone: '+44 7958 533059', email: '', notes: '58 Pear Tree St, EC1V 3SB' },
+    { id: 3, name: 'Durdle Door Caravan Park', phone: '+44 7720 255619', email: '', notes: 'Conf: 5388842126' },
+    { id: 4, name: 'Brighton Sheraton', phone: '+44-1273-820854', email: '', notes: 'Conf: 99571873' },
+  ],
+};
+
+// ══════════════════════════════════════════════
+//  STATE — per-user namespaced storage via Auth
+// ══════════════════════════════════════════════
+function load(key) {
+  return Auth.getData(key, null);
+}
+function save(key, val) {
+  Auth.saveData(key, val);
+  showToast();
+}
+function getData(key) { return load(key) || JSON.parse(JSON.stringify(DEFAULTS[key])); }
+
+let nextId = { flights: 100, accom: 100, car: 100, itinerary: 100, contacts: 100, passports: 100 };
+
+// ══════════════════════════════════════════════
+//  DROPDOWN NAV
+// ══════════════════════════════════════════════
+function toggleDD() {
+  const btn = document.getElementById('dd-btn');
+  const menu = document.getElementById('dd-menu');
+  btn.classList.toggle('open');
+  menu.classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('nav-dropdown').contains(e.target)) {
+    document.getElementById('dd-btn').classList.remove('open');
+    document.getElementById('dd-menu').classList.remove('open');
+  }
+});
+function switchSection(id, icon, label, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  document.getElementById('dd-icon').textContent = icon;
+  document.getElementById('dd-label').textContent = label;
+  document.getElementById('dd-btn').classList.remove('open');
+  document.getElementById('dd-menu').classList.remove('open');
+  document.querySelectorAll('.dd-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ══════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════
+let toastTimer;
+function showToast() {
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ══════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════
+function statusBadge(s) {
+  const map = { confirmed: 's-confirmed', pending: 's-pending', tbc: 's-tbc' };
+  const label = { confirmed: 'Confirmed', pending: 'Pending', tbc: 'TBC' };
+  return `<span class="status-badge ${map[s]||'s-tbc'}">${label[s]||s}</span>`;
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toggleBody(id) {
+  const body = document.getElementById('body-' + id);
+  const chev = document.getElementById('chev-' + id);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+// ══════════════════════════════════════════════
+//  FLIGHTS  (with per-traveller details)
+// ══════════════════════════════════════════════
+function renderFlights() {
+  const data = getData('flights');
+  const list = document.getElementById('flights-list');
+  list.innerHTML = data.map(f => {
+    const tvl = f.travellers || [
+      { name: 'Traveller 1', seat: '', meal: '', baggage: '', ffn: '' },
+      { name: 'Traveller 2', seat: '', meal: '', baggage: '', ffn: '' },
+      { name: 'Traveller 3', seat: '', meal: '', baggage: '', ffn: '' },
+    ];
+    const tvlRows = tvl.map((t, ti) => `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">👤 ${esc(t.name)}</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Name</label><input value="${esc(t.name)}" onchange="updateTraveller(${f.id},${ti},'name',this.value)"/></div>
+          <div class="form-group"><label>Seat</label><input value="${esc(t.seat)}" placeholder="e.g. 14A" onchange="updateTraveller(${f.id},${ti},'seat',this.value)"/></div>
+          <div class="form-group"><label>Meal preference</label><input value="${esc(t.meal)}" placeholder="e.g. AVML" onchange="updateTraveller(${f.id},${ti},'meal',this.value)"/></div>
+          <div class="form-group"><label>Baggage allowance</label><input value="${esc(t.baggage)}" placeholder="e.g. 30kg" onchange="updateTraveller(${f.id},${ti},'baggage',this.value)"/></div>
+          <div class="form-group"><label>Freq. flyer no.</label><input value="${esc(t.ffn)}" onchange="updateTraveller(${f.id},${ti},'ffn',this.value)"/></div>
+        </div>
+      </div>`).join('');
+    return `
+    <div class="row-card" id="fc-${f.id}">
+      <div class="row-card-head" onclick="toggleBody('f${f.id}')">
+        <div>
+          <div class="row-card-label">
+            ✈ ${esc(f.flightNo)} &nbsp;·&nbsp; ${esc(f.from)} → ${esc(f.to)}
+            ${statusBadge(f.status)}
+          </div>
+          <div class="row-card-meta">${esc(f.carrier)} · ${fmtDate(f.date)} · Dep ${esc(f.dep)} · Arr ${esc(f.arr)}${f.cost ? ' · ' + esc(f.currency) + ' ' + esc(f.cost) : ''}</div>
+        </div>
+        <div class="row-card-actions">
+          <button class="btn btn-danger" onclick="event.stopPropagation();deleteFlight(${f.id})">✕</button>
+          <span class="chevron" id="chev-f${f.id}">▼</span>
+        </div>
+      </div>
+      <div class="row-card-body" id="body-f${f.id}">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Flight details</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Carrier</label><input value="${esc(f.carrier)}" onchange="updateFlight(${f.id},'carrier',this.value)"/></div>
+          <div class="form-group"><label>Flight No.</label><input value="${esc(f.flightNo)}" onchange="updateFlight(${f.id},'flightNo',this.value)"/></div>
+          <div class="form-group"><label>Date</label><input type="date" value="${esc(f.date)}" onchange="updateFlight(${f.id},'date',this.value)"/></div>
+          <div class="form-group"><label>Status</label>
+            <select onchange="updateFlight(${f.id},'status',this.value)">
+              <option value="confirmed" ${f.status==='confirmed'?'selected':''}>Confirmed</option>
+              <option value="pending"   ${f.status==='pending'?'selected':''}>Pending</option>
+              <option value="tbc"       ${f.status==='tbc'?'selected':''}>TBC</option>
+            </select>
+          </div>
+          <div class="form-group"><label>From</label><input value="${esc(f.from)}" onchange="updateFlight(${f.id},'from',this.value)"/></div>
+          <div class="form-group"><label>Departure time</label><input value="${esc(f.dep)}" onchange="updateFlight(${f.id},'dep',this.value)"/></div>
+          <div class="form-group"><label>To</label><input value="${esc(f.to)}" onchange="updateFlight(${f.id},'to',this.value)"/></div>
+          <div class="form-group"><label>Arrival time</label><input value="${esc(f.arr)}" onchange="updateFlight(${f.id},'arr',this.value)"/></div>
+          <div class="form-group"><label>Reservation ref</label><input value="${esc(f.ref)}" onchange="updateFlight(${f.id},'ref',this.value)"/></div>
+          <div class="form-group"><label>Cost</label><input value="${esc(f.cost)}" onchange="updateFlight(${f.id},'cost',this.value)"/></div>
+          <div class="form-group"><label>Currency</label>
+            <select onchange="updateFlight(${f.id},'currency',this.value)">
+              <option value="SGD" ${f.currency==='SGD'?'selected':''}>SGD</option>
+              <option value="GBP" ${f.currency==='GBP'?'selected':''}>GBP</option>
+              <option value="USD" ${f.currency==='USD'?'selected':''}>USD</option>
+            </select>
+          </div>
+          <div class="form-group full"><label>Notes</label><textarea onchange="updateFlight(${f.id},'notes',this.value)">${esc(f.notes)}</textarea></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 10px">👥 Travellers on this flight</div>
+        ${tvlRows}
+      </div>
+    </div>`;
+  }).join('');
+}
+function updateFlight(id, field, val) {
+  const data = getData('flights');
+  const item = data.find(x => x.id === id);
+  if (item) { item[field] = val; save('flights', data); renderFlights(); }
+}
+function updateTraveller(flightId, ti, field, val) {
+  const data = getData('flights');
+  const flight = data.find(x => x.id === flightId);
+  if (!flight) return;
+  if (!flight.travellers) flight.travellers = [{},{},{}];
+  if (!flight.travellers[ti]) flight.travellers[ti] = {};
+  flight.travellers[ti][field] = val;
+  save('flights', data);
+}
+function deleteFlight(id) {
+  if (!confirm('Delete this flight?')) return;
+  const data = getData('flights').filter(x => x.id !== id);
+  save('flights', data); renderFlights();
+}
+function addFlight() {
+  const data = getData('flights');
+  const id = ++nextId.flights;
+  data.push({ id, carrier: 'Qatar Airways', flightNo: '', date: '', from: '', dep: '', to: '', arr: '', ref: '', cost: '', currency: 'SGD', status: 'tbc', notes: '',
+    travellers: [
+      { name: 'Traveller 1', seat: '', meal: '', baggage: '', ffn: '' },
+      { name: 'Traveller 2', seat: '', meal: '', baggage: '', ffn: '' },
+      { name: 'Traveller 3', seat: '', meal: '', baggage: '', ffn: '' },
+    ]});
+  save('flights', data); renderFlights();
+  setTimeout(() => { toggleBody('f' + id); document.getElementById('fc-' + id).scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+}
+
+// ══════════════════════════════════════════════
+//  ACCOMMODATION
+// ══════════════════════════════════════════════
+function renderAccom() {
+  const data = getData('accom');
+  const list = document.getElementById('accom-list');
+  list.innerHTML = data.map(a => `
+    <div class="row-card" id="ac-${a.id}">
+      <div class="row-card-head" onclick="toggleBody('a${a.id}')">
+        <div>
+          <div class="row-card-label">🏨 ${esc(a.location)} ${statusBadge(a.status)}</div>
+          <div class="row-card-meta">${esc(a.name)} · ${fmtDate(a.checkin)} → ${fmtDate(a.checkout)}${a.cost ? ' · £' + esc(a.cost) : ''}</div>
+        </div>
+        <div class="row-card-actions">
+          <button class="btn btn-danger" onclick="event.stopPropagation();deleteAccom(${a.id})">✕</button>
+          <span class="chevron" id="chev-a${a.id}">▼</span>
+        </div>
+      </div>
+      <div class="row-card-body" id="body-a${a.id}">
+        <div class="form-grid">
+          <div class="form-group"><label>Location / City</label><input value="${esc(a.location)}" onchange="updateAccom(${a.id},'location',this.value)"/></div>
+          <div class="form-group"><label>Property name</label><input value="${esc(a.name)}" onchange="updateAccom(${a.id},'name',this.value)"/></div>
+          <div class="form-group"><label>Check-in</label><input type="date" value="${esc(a.checkin)}" onchange="updateAccom(${a.id},'checkin',this.value)"/></div>
+          <div class="form-group"><label>Check-out</label><input type="date" value="${esc(a.checkout)}" onchange="updateAccom(${a.id},'checkout',this.value)"/></div>
+          <div class="form-group"><label>Status</label>
+            <select onchange="updateAccom(${a.id},'status',this.value)">
+              <option value="confirmed" ${a.status==='confirmed'?'selected':''}>Confirmed</option>
+              <option value="pending"   ${a.status==='pending'?'selected':''}>Pending</option>
+              <option value="tbc"       ${a.status==='tbc'?'selected':''}>TBC</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Confirmation No.</label><input value="${esc(a.confNo)}" onchange="updateAccom(${a.id},'confNo',this.value)"/></div>
+          <div class="form-group"><label>Phone</label><input value="${esc(a.phone)}" onchange="updateAccom(${a.id},'phone',this.value)"/></div>
+          <div class="form-group"><label>Concierge</label><input value="${esc(a.concierge)}" onchange="updateAccom(${a.id},'concierge',this.value)"/></div>
+          <div class="form-group"><label>Cost</label><input value="${esc(a.cost)}" onchange="updateAccom(${a.id},'cost',this.value)"/></div>
+          <div class="form-group"><label>Currency</label>
+            <select onchange="updateAccom(${a.id},'currency',this.value)">
+              <option value="GBP" ${a.currency==='GBP'?'selected':''}>GBP</option>
+              <option value="SGD" ${a.currency==='SGD'?'selected':''}>SGD</option>
+              <option value="USD" ${a.currency==='USD'?'selected':''}>USD</option>
+            </select>
+          </div>
+          <div class="form-group full"><label>Address</label><input value="${esc(a.address)}" onchange="updateAccom(${a.id},'address',this.value)"/></div>
+          <div class="form-group full"><label>Notes</label><textarea onchange="updateAccom(${a.id},'notes',this.value)">${esc(a.notes)}</textarea></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function updateAccom(id, field, val) {
+  const data = getData('accom');
+  const item = data.find(x => x.id === id);
+  if (item) { item[field] = val; save('accom', data); renderAccom(); }
+}
+function deleteAccom(id) {
+  if (!confirm('Delete this stay?')) return;
+  save('accom', getData('accom').filter(x => x.id !== id)); renderAccom();
+}
+function addAccom() {
+  const data = getData('accom');
+  const id = ++nextId.accom;
+  data.push({ id, location: '', name: '', checkin: '', checkout: '', concierge: '', phone: '', address: '', confNo: '', cost: '', currency: 'GBP', status: 'tbc', notes: '' });
+  save('accom', data); renderAccom();
+  setTimeout(() => { toggleBody('a' + id); document.getElementById('ac-' + id).scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+}
+
+// ══════════════════════════════════════════════
+//  CAR RENTAL
+// ══════════════════════════════════════════════
+function renderCar() {
+  const data = getData('car');
+  const list = document.getElementById('car-list');
+  list.innerHTML = data.map(c => `
+    <div class="row-card" id="cr-${c.id}">
+      <div class="row-card-head" onclick="toggleBody('c${c.id}')">
+        <div>
+          <div class="row-card-label">🚗 ${esc(c.company)} ${statusBadge(c.status)}</div>
+          <div class="row-card-meta">${esc(c.pickup)} · ${fmtDate(c.pickupDate)} → ${fmtDate(c.dropoffDate)}${c.cost ? ' · £' + esc(c.cost) : ''}</div>
+        </div>
+        <div class="row-card-actions">
+          <button class="btn btn-danger" onclick="event.stopPropagation();deleteCar(${c.id})">✕</button>
+          <span class="chevron" id="chev-c${c.id}">▼</span>
+        </div>
+      </div>
+      <div class="row-card-body" id="body-c${c.id}">
+        <div class="form-grid">
+          <div class="form-group"><label>Company</label><input value="${esc(c.company)}" onchange="updateCar(${c.id},'company',this.value)"/></div>
+          <div class="form-group"><label>Status</label>
+            <select onchange="updateCar(${c.id},'status',this.value)">
+              <option value="confirmed" ${c.status==='confirmed'?'selected':''}>Confirmed</option>
+              <option value="pending"   ${c.status==='pending'?'selected':''}>Pending</option>
+              <option value="tbc"       ${c.status==='tbc'?'selected':''}>TBC</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Pick-up location</label><input value="${esc(c.pickup)}" onchange="updateCar(${c.id},'pickup',this.value)"/></div>
+          <div class="form-group"><label>Pick-up date</label><input type="date" value="${esc(c.pickupDate)}" onchange="updateCar(${c.id},'pickupDate',this.value)"/></div>
+          <div class="form-group"><label>Drop-off location</label><input value="${esc(c.dropoff)}" onchange="updateCar(${c.id},'dropoff',this.value)"/></div>
+          <div class="form-group"><label>Drop-off date</label><input type="date" value="${esc(c.dropoffDate)}" onchange="updateCar(${c.id},'dropoffDate',this.value)"/></div>
+          <div class="form-group"><label>Confirmation No.</label><input value="${esc(c.confNo)}" onchange="updateCar(${c.id},'confNo',this.value)"/></div>
+          <div class="form-group"><label>Cost</label><input value="${esc(c.cost)}" onchange="updateCar(${c.id},'cost',this.value)"/></div>
+          <div class="form-group"><label>Currency</label>
+            <select onchange="updateCar(${c.id},'currency',this.value)">
+              <option value="GBP" ${c.currency==='GBP'?'selected':''}>GBP</option>
+              <option value="SGD" ${c.currency==='SGD'?'selected':''}>SGD</option>
+              <option value="USD" ${c.currency==='USD'?'selected':''}>USD</option>
+            </select>
+          </div>
+          <div class="form-group full"><label>Notes</label><textarea onchange="updateCar(${c.id},'notes',this.value)">${esc(c.notes)}</textarea></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function updateCar(id, field, val) {
+  const data = getData('car');
+  const item = data.find(x => x.id === id);
+  if (item) { item[field] = val; save('car', data); renderCar(); }
+}
+function deleteCar(id) {
+  if (!confirm('Delete this rental?')) return;
+  save('car', getData('car').filter(x => x.id !== id)); renderCar();
+}
+function addCar() {
+  const data = getData('car');
+  const id = ++nextId.car;
+  data.push({ id, company: '', pickup: '', pickupDate: '', dropoff: '', dropoffDate: '', confNo: '', cost: '', currency: 'GBP', status: 'tbc', notes: '' });
+  save('car', data); renderCar();
+  setTimeout(() => { toggleBody('c' + id); document.getElementById('cr-' + id).scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+}
+
+// ══════════════════════════════════════════════
+//  ITINERARY
+// ══════════════════════════════════════════════
+const DAY_TYPES = ['Arrive','Depart','Travel','Drive','Explore','Rest','Activity'];
+const TYPE_ICONS = { Arrive:'🛬', Depart:'🛫', Travel:'✈', Drive:'🚗', Explore:'🗺', Rest:'😴', Activity:'📍' };
+
+function renderItinerary() {
+  const data = getData('itinerary');
+  const list = document.getElementById('itinerary-list');
+  list.innerHTML = data.map(d => `
+    <div class="row-card" id="ic-${d.id}">
+      <div class="row-card-head" onclick="toggleBody('i${d.id}')">
+        <div>
+          <div class="row-card-label">${TYPE_ICONS[d.type]||'📍'} ${fmtDate(d.date)} &nbsp;·&nbsp; ${esc(d.location)}</div>
+          <div class="row-card-meta">${esc(d.activity.substring(0,80))}${d.activity.length>80?'…':''}</div>
+        </div>
+        <div class="row-card-actions">
+          <button class="btn btn-danger" onclick="event.stopPropagation();deleteDay(${d.id})">✕</button>
+          <span class="chevron" id="chev-i${d.id}">▼</span>
+        </div>
+      </div>
+      <div class="row-card-body" id="body-i${d.id}">
+        <div class="form-grid">
+          <div class="form-group"><label>Date</label><input type="date" value="${esc(d.date)}" onchange="updateDay(${d.id},'date',this.value)"/></div>
+          <div class="form-group"><label>Location</label><input value="${esc(d.location)}" onchange="updateDay(${d.id},'location',this.value)"/></div>
+          <div class="form-group"><label>Type</label>
+            <select onchange="updateDay(${d.id},'type',this.value)">
+              ${DAY_TYPES.map(t => `<option value="${t}" ${d.type===t?'selected':''}>${TYPE_ICONS[t]||''} ${t}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group full"><label>Activity / description</label><textarea onchange="updateDay(${d.id},'activity',this.value)">${esc(d.activity)}</textarea></div>
+          <div class="form-group full"><label>Notes</label><textarea onchange="updateDay(${d.id},'notes',this.value)">${esc(d.notes)}</textarea></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function sortAndSaveItinerary(data) {
+  data.sort((a, b) => (a.date || '') < (b.date || '') ? -1 : 1);
+  save('itinerary', data);
+}
+function updateDay(id, field, val) {
+  const data = getData('itinerary');
+  const item = data.find(x => x.id === id);
+  if (item) { item[field] = val; sortAndSaveItinerary(data); renderItinerary(); }
+}
+function deleteDay(id) {
+  if (!confirm('Delete this day?')) return;
+  save('itinerary', getData('itinerary').filter(x => x.id !== id)); renderItinerary();
+}
+function addDay() {
+  const data = getData('itinerary');
+  const id = ++nextId.itinerary;
+  data.push({ id, date: '', location: '', type: 'Explore', activity: '', notes: '' });
+  sortAndSaveItinerary(data); renderItinerary();
+  setTimeout(() => { toggleBody('i' + id); document.getElementById('ic-' + id).scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+}
+
+// ══════════════════════════════════════════════
+//  PACKING CHECKLIST
+// ══════════════════════════════════════════════
+function renderChecklist() {
+  const data = getData('checklist');
+  const body = document.getElementById('checklist-body');
+  body.innerHTML = data.map((cat, ci) => `
+    <div class="check-section">
+      <div class="check-section-title">
+        <span>${esc(cat.category)}</span>
+        <div style="display:flex;gap:8px">
+          <span style="color:var(--muted);font-size:11px">${cat.items.filter(i=>i.checked).length}/${cat.items.length}</span>
+          <button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="deleteCategory(${ci})">✕ category</button>
+        </div>
+      </div>
+      <div class="check-items" id="cat-items-${ci}">
+        ${cat.items.map((item, ii) => `
+          <div class="check-item${item.checked?' done':''}">
+            <div class="check-box${item.checked?' checked':''}" onclick="toggleCheck(${ci},${ii})"></div>
+            <span class="check-item-text${item.checked?' done':''}">${esc(item.text)}</span>
+            ${item.qty ? `<span class="check-qty">×${esc(item.qty)}</span>` : ''}
+            <button class="del-item" onclick="deleteCheckItem(${ci},${ii})">✕</button>
+          </div>`).join('')}
+      </div>
+      <div class="add-item-row">
+        <input placeholder="Add item…" id="new-item-${ci}" onkeydown="if(event.key==='Enter')addCheckItem(${ci})"/>
+        <input placeholder="Qty" id="new-qty-${ci}" style="width:60px" onkeydown="if(event.key==='Enter')addCheckItem(${ci})"/>
+        <button class="btn btn-primary" onclick="addCheckItem(${ci})">Add</button>
+      </div>
+    </div>`).join('');
+  updatePackProgress();
+}
+function toggleCheck(ci, ii) {
+  const data = getData('checklist');
+  data[ci].items[ii].checked = !data[ci].items[ii].checked;
+  save('checklist', data); renderChecklist();
+}
+function deleteCheckItem(ci, ii) {
+  const data = getData('checklist');
+  data[ci].items.splice(ii, 1);
+  save('checklist', data); renderChecklist();
+}
+function addCheckItem(ci) {
+  const textEl = document.getElementById('new-item-' + ci);
+  const qtyEl  = document.getElementById('new-qty-' + ci);
+  const text = textEl.value.trim();
+  if (!text) return;
+  const data = getData('checklist');
+  data[ci].items.push({ text, qty: qtyEl.value.trim(), checked: false });
+  save('checklist', data); renderChecklist();
+}
+function deleteCategory(ci) {
+  if (!confirm('Delete this category and all items?')) return;
+  const data = getData('checklist');
+  data.splice(ci, 1);
+  save('checklist', data); renderChecklist();
+}
+function addCategory() {
+  const name = prompt('Category name:');
+  if (!name) return;
+  const data = getData('checklist');
+  data.push({ category: name, items: [] });
+  save('checklist', data); renderChecklist();
+}
+function updatePackProgress() {
+  const data = getData('checklist');
+  let total = 0, done = 0;
+  data.forEach(c => { total += c.items.length; done += c.items.filter(i => i.checked).length; });
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById('pack-pct').textContent = `${done} / ${total} (${pct}%)`;
+  document.getElementById('pack-prog-fill').style.width = pct + '%';
+}
+
+// ══════════════════════════════════════════════
+//  CONTACTS
+// ══════════════════════════════════════════════
+function renderContacts() {
+  const data = getData('contacts');
+  const list = document.getElementById('contacts-list');
+  list.innerHTML = data.map(c => `
+    <div class="row-card" id="cc-${c.id}">
+      <div class="row-card-head" onclick="toggleBody('ct${c.id}')">
+        <div>
+          <div class="row-card-label">📞 ${esc(c.name)}</div>
+          <div class="row-card-meta">${c.phone ? esc(c.phone) : ''}${c.email ? ' · ' + esc(c.email) : ''}${c.notes ? ' · ' + esc(c.notes) : ''}</div>
+        </div>
+        <div class="row-card-actions">
+          <button class="btn btn-danger" onclick="event.stopPropagation();deleteContact(${c.id})">✕</button>
+          <span class="chevron" id="chev-ct${c.id}">▼</span>
+        </div>
+      </div>
+      <div class="row-card-body" id="body-ct${c.id}">
+        <div class="form-grid">
+          <div class="form-group full"><label>Name</label><input value="${esc(c.name)}" onchange="updateContact(${c.id},'name',this.value)"/></div>
+          <div class="form-group"><label>Phone</label><input value="${esc(c.phone)}" onchange="updateContact(${c.id},'phone',this.value)"/></div>
+          <div class="form-group"><label>Email</label><input value="${esc(c.email)}" onchange="updateContact(${c.id},'email',this.value)"/></div>
+          <div class="form-group full"><label>Notes</label><textarea onchange="updateContact(${c.id},'notes',this.value)">${esc(c.notes)}</textarea></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function updateContact(id, field, val) {
+  const data = getData('contacts');
+  const item = data.find(x => x.id === id);
+  if (item) { item[field] = val; save('contacts', data); renderContacts(); }
+}
+function deleteContact(id) {
+  if (!confirm('Delete this contact?')) return;
+  save('contacts', getData('contacts').filter(x => x.id !== id)); renderContacts();
+}
+function addContact() {
+  const data = getData('contacts');
+  const id = ++nextId.contacts;
+  data.push({ id, name: '', phone: '', email: '', notes: '' });
+  save('contacts', data); renderContacts();
+  setTimeout(() => { toggleBody('ct' + id); document.getElementById('cc-' + id).scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+}
+
+// ══════════════════════════════════════════════
+//  PASSPORTS
+// ══════════════════════════════════════════════
+function renderPassports() {
+  const data = getData('passports');
+  const list = document.getElementById('passports-list');
+  const RELATIONS = ['Self', 'Spouse', 'Child', 'Parent', 'Sibling', 'Friend', 'Family', 'Other'];
+  const GENDERS   = ['', 'Female', 'Male', 'Other'];
+  list.innerHTML = data.map(p => {
+    const daysToExpiry = p.expiryDate ? Math.floor((new Date(p.expiryDate) - new Date()) / 86400000) : null;
+    const expiryWarn = daysToExpiry !== null && daysToExpiry < 365
+      ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(248,81,73,.12);color:#f85149;margin-left:6px">⚠ Expires in ${daysToExpiry}d</span>` : '';
+    return `
+    <div class="row-card" id="pp-${p.id}">
+      <div class="row-card-head" onclick="toggleBody('pp${p.id}')">
+        <div>
+          <div class="row-card-label">🛂 ${esc(p.name)||'Traveller '+(data.indexOf(p)+1)} <span style="font-size:11px;padding:2px 7px;border-radius:10px;background:rgba(88,166,255,.1);color:var(--accent);font-weight:600;margin-left:4px">${esc(p.relation)}</span>${expiryWarn}</div>
+          <div class="row-card-meta">${p.nationality ? esc(p.nationality) + ' passport' : 'Nationality not set'}${p.passportNo ? ' · #' + esc(p.passportNo) : ''}${p.expiryDate ? ' · Expires ' + fmtDate(p.expiryDate) : ''}</div>
+        </div>
+        <div class="row-card-actions">
+          <button class="btn btn-danger" onclick="event.stopPropagation();deletePassport(${p.id})">✕</button>
+          <span class="chevron" id="chev-pp${p.id}">▼</span>
+        </div>
+      </div>
+      <div class="row-card-body" id="body-pp${p.id}">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Personal info</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Full name (as on passport)</label><input value="${esc(p.name)}" onchange="updatePassport(${p.id},'name',this.value)"/></div>
+          <div class="form-group"><label>Relation</label>
+            <select onchange="updatePassport(${p.id},'relation',this.value)">
+              ${RELATIONS.map(r => `<option value="${r}" ${p.relation===r?'selected':''}>${r}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group"><label>Date of birth</label><input type="date" value="${esc(p.dob)}" onchange="updatePassport(${p.id},'dob',this.value)"/></div>
+          <div class="form-group"><label>Gender</label>
+            <select onchange="updatePassport(${p.id},'gender',this.value)">
+              ${GENDERS.map(g => `<option value="${g}" ${p.gender===g?'selected':''}>${g||'— Select —'}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group"><label>Nationality</label><input value="${esc(p.nationality)}" placeholder="e.g. Singaporean" onchange="updatePassport(${p.id},'nationality',this.value)"/></div>
+          <div class="form-group"><label>Place of birth</label><input value="${esc(p.placeOfBirth)}" onchange="updatePassport(${p.id},'placeOfBirth',this.value)"/></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 10px">Passport details</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Passport number</label><input value="${esc(p.passportNo)}" onchange="updatePassport(${p.id},'passportNo',this.value)"/></div>
+          <div class="form-group"><label>Country of issue</label><input value="${esc(p.issueCountry)}" onchange="updatePassport(${p.id},'issueCountry',this.value)"/></div>
+          <div class="form-group"><label>Issue date</label><input type="date" value="${esc(p.issueDate)}" onchange="updatePassport(${p.id},'issueDate',this.value)"/></div>
+          <div class="form-group"><label>Expiry date</label><input type="date" value="${esc(p.expiryDate)}" onchange="updatePassport(${p.id},'expiryDate',this.value)"/></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 10px">Visa / entry</div>
+        <div class="form-grid">
+          <div class="form-group"><label>UK visa required?</label>
+            <select onchange="updatePassport(${p.id},'visaRequired',this.value)">
+              <option value="No"      ${p.visaRequired==='No'?'selected':''}>No (visa-free)</option>
+              <option value="ETA"     ${p.visaRequired==='ETA'?'selected':''}>ETA required</option>
+              <option value="Yes"     ${p.visaRequired==='Yes'?'selected':''}>Yes – visa required</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Visa / ETA status</label><input value="${esc(p.visaStatus)}" placeholder="e.g. Approved, Applied" onchange="updatePassport(${p.id},'visaStatus',this.value)"/></div>
+          <div class="form-group full"><label>Notes</label><textarea onchange="updatePassport(${p.id},'notes',this.value)">${esc(p.notes)}</textarea></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function updatePassport(id, field, val) {
+  const data = getData('passports');
+  const item = data.find(x => x.id === id);
+  if (item) { item[field] = val; save('passports', data); renderPassports(); }
+}
+function deletePassport(id) {
+  if (!confirm('Delete this passport record?')) return;
+  save('passports', getData('passports').filter(x => x.id !== id)); renderPassports();
+}
+function addPassport() {
+  const data = getData('passports');
+  const id = ++nextId.passports;
+  data.push({ id, name: '', relation: 'Family', nationality: '', passportNo: '', issueDate: '', expiryDate: '', dob: '', gender: '', placeOfBirth: '', issueCountry: '', visaRequired: 'No', visaStatus: '', notes: '' });
+  save('passports', data); renderPassports();
+  setTimeout(() => { toggleBody('pp' + id); document.getElementById('pp-' + id).scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+}
+
+// ══════════════════════════════════════════════
+//  COUNTDOWN
+// ══════════════════════════════════════════════
+const DEPART = new Date('2026-07-03T11:30:00Z');
+function tick() {
+  const diff = DEPART - new Date();
+  if (diff <= 0) { document.getElementById('top-countdown').textContent = 'Departed!'; return; }
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  document.getElementById('top-countdown').textContent = `${d}d ${h}h ${m}m`;
+}
+tick();
+setInterval(tick, 30000);
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+renderFlights();
+renderPassports();
+renderAccom();
+renderCar();
+renderItinerary();
+renderChecklist();
+renderContacts();
+
+// ══════════════════════════════════════════════
+//  ACCESS MANAGEMENT (admin only)
+// ══════════════════════════════════════════════
+const ROLE_LABELS = { admin:'Admin', editor:'Editor', viewer:'Viewer' };
+const ROLE_COLORS = { admin:'color:#58a6ff', editor:'color:#3fb950', viewer:'color:#8b949e' };
+
+function renderAccess() {
+  const list = document.getElementById('access-users-list');
+  if (!list) return;
+  const me = Auth.getCurrentUser();
+  const users = Auth.loadUsers();
+  if (!users.length) { list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">No users yet.</div>'; return; }
+  list.innerHTML = users.map(u => `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+      <div style="width:34px;height:34px;border-radius:50%;background:#58a6ff;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0">${(u.name||'?').charAt(0).toUpperCase()}</div>
+      <div style="flex:1;min-width:120px">
+        <div style="font-weight:700;font-size:13px">${esc(u.name)} ${u.id === me.id ? '<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:rgba(88,166,255,.15);color:#58a6ff">You</span>' : ''}</div>
+        <div style="font-size:11px;color:var(--muted)">${esc(u.email)}</div>
+      </div>
+      <select style="font-size:12px;padding:5px 8px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text)" onchange="changeRole('${u.id}',this.value)" ${u.id === me.id ? 'disabled' : ''}>
+        <option value="viewer"  ${u.role==='viewer'?'selected':''}>Viewer</option>
+        <option value="editor"  ${u.role==='editor'?'selected':''}>Editor</option>
+        <option value="admin"   ${u.role==='admin'?'selected':''}>Admin</option>
+      </select>
+      ${u.id !== me.id ? `<button class="btn btn-danger" style="font-size:11px;padding:4px 10px" onclick="revokeUser('${u.id}')">Revoke</button>` : ''}
+    </div>`).join('');
+}
+
+function changeRole(userId, newRole) {
+  try { Auth.updateRole(userId, newRole); renderAccess(); showToast(); } catch(e) { alert(e.message); }
+}
+function revokeUser(userId) {
+  if (!confirm('Remove this user\'s access?')) return;
+  Auth.revokeAccess(userId); renderAccess();
+}
+async function inviteUser() {
+  const name    = document.getElementById('invite-name').value.trim();
+  const email   = document.getElementById('invite-email').value.trim();
+  const role    = document.getElementById('invite-role').value;
+  const pwd     = document.getElementById('invite-pwd').value;
+  const share   = document.getElementById('share-data').checked;
+  const result  = document.getElementById('invite-result');
+  result.style.display = 'none';
+  if (!name || !email || !pwd) { result.textContent = 'Please fill in name, email and password.'; result.style.color='#f85149'; result.style.display='block'; return; }
+  try {
+    const user = await Auth.grantAccess(name, email, role, pwd);
+    if (share) Auth.shareAdminDataWith(user.id);
+    result.innerHTML = `✅ Account created for <strong>${esc(user.name)}</strong> as <strong>${ROLE_LABELS[role]}</strong>. They can log in at <a href="login.html" style="color:#58a6ff">login.html</a> with the password you set.`;
+    result.style.color = '#3fb950';
+    result.style.display = 'block';
+    document.getElementById('invite-name').value = '';
+    document.getElementById('invite-email').value = '';
+    document.getElementById('invite-pwd').value = '';
+    renderAccess();
+  } catch(e) { result.textContent = e.message; result.style.color='#f85149'; result.style.display='block'; }
+}
+
+// ══════════════════════════════════════════════
+//  ROLE ENFORCEMENT — hide write controls for non-editors
+// ══════════════════════════════════════════════
+function enforceRole() {
+  const edit = Auth.canEdit();
+  const admin = Auth.isAdmin();
+
+  // show/hide Access menu item
+  const accessItem = document.getElementById('dd-access');
+  if (accessItem) accessItem.style.display = admin ? 'flex' : 'none';
+
+  // hide Passports section for viewers
+  const passSection = document.getElementById('sec-passports');
+  if (passSection && !edit) passSection.innerHTML = '<div class="card"><p style="color:var(--muted);font-size:13px;padding:8px 0">🔒 Passport details are restricted to Editors and Admins.</p></div>';
+
+  if (!edit) {
+    // disable all inputs and hide all add/delete buttons
+    document.querySelectorAll('.btn-primary, .btn-danger').forEach(b => { b.style.display = 'none'; });
+    document.querySelectorAll('input, select, textarea').forEach(el => { el.disabled = true; el.style.opacity = '.6'; });
+    // show a read-only notice
+    const notice = document.createElement('div');
+    notice.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#21262d;border:1px solid #30363d;color:#8b949e;font-size:12px;font-weight:600;padding:8px 18px;border-radius:20px;z-index:200';
+    notice.textContent = '👁 View only — you have Viewer access';
+    document.body.appendChild(notice);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  AUTH INIT
+// ══════════════════════════════════════════════
+Auth.injectChipStyles();
+Auth.requireAuth();
+Auth.renderUserChip('#user-chip-anchor');
+enforceRole();
+if (Auth.isAdmin()) renderAccess();
+</script>
+</body>
+</html>

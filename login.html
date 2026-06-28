@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign in · UK Road Trip</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      color: #fff;
+    }
+    /* London at dusk */
+    .bg {
+      position: fixed; inset: 0; z-index: 0;
+      background-image: url('https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=1920&auto=format&fit=crop&q=85');
+      background-size: cover; background-position: center 55%;
+    }
+    .bg-overlay {
+      position: fixed; inset: 0; z-index: 1;
+      background: linear-gradient(160deg, rgba(5,12,28,0.80) 0%, rgba(5,12,28,0.55) 50%, rgba(5,12,28,0.82) 100%);
+    }
+    .card {
+      position: relative; z-index: 2;
+      width: 100%; max-width: 400px;
+      backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 20px;
+      padding: 40px 36px;
+      box-shadow: 0 16px 56px rgba(0,0,0,0.45);
+    }
+    .logo { text-align: center; margin-bottom: 28px; }
+    .logo-flag { font-size: 36px; }
+    .logo-title { font-size: 20px; font-weight: 900; margin-top: 8px; letter-spacing: -0.5px; }
+    .logo-title em { font-style: normal; color: #90caf9; }
+    .logo-sub { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 4px; }
+
+    h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .sub { font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 24px; }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: rgba(255,255,255,0.60); margin-bottom: 6px; }
+    input {
+      width: 100%;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      padding: 11px 14px;
+      font-family: inherit;
+      transition: border-color .15s, background .15s;
+      outline: none;
+    }
+    input::placeholder { color: rgba(255,255,255,0.30); }
+    input:focus { border-color: #90caf9; background: rgba(255,255,255,0.14); }
+
+    .btn-primary {
+      width: 100%; padding: 13px;
+      background: #58a6ff; color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      margin-top: 8px;
+    }
+    .btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    .error-msg {
+      background: rgba(248,81,73,.15);
+      border: 1px solid rgba(248,81,73,.35);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #f85149;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .error-msg.show { display: block; }
+
+    .divider { text-align: center; margin: 20px 0 0; font-size: 13px; color: rgba(255,255,255,0.45); }
+    .divider a { color: #90caf9; text-decoration: none; font-weight: 600; }
+    .divider a:hover { text-decoration: underline; }
+
+    .photo-credit { position: fixed; bottom: 12px; right: 16px; z-index: 10; font-size: 10px; color: rgba(255,255,255,0.25); }
+  </style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="bg-overlay"></div>
+<div class="photo-credit">📷 London · Unsplash</div>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-flag">🇬🇧</div>
+    <div class="logo-title">The <em>Great British</em> Road Trip</div>
+    <div class="logo-sub">July 2026 · Singapore → UK → Singapore</div>
+  </div>
+
+  <h2>Welcome back</h2>
+  <div class="sub">Sign in to your trip account</div>
+
+  <div class="error-msg" id="error-msg"></div>
+
+  <form id="login-form" onsubmit="return false">
+    <div class="form-group">
+      <label>Email address</label>
+      <input type="email" id="email" placeholder="you@example.com" required autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password"/>
+    </div>
+    <button class="btn-primary" id="login-btn" type="submit">Sign in</button>
+  </form>
+
+  <div class="divider">Don't have an account? <a href="register.html">Create one →</a></div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+  // Already logged in → skip to home
+  if (Auth.getCurrentUser()) window.location.href = 'home.html';
+
+  document.getElementById('login-form').addEventListener('submit', async () => {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn      = document.getElementById('login-btn');
+    const errEl    = document.getElementById('error-msg');
+
+    errEl.classList.remove('show');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    try {
+      await Auth.login(email, password);
+      window.location.href = 'home.html';
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Sign in';
+    }
+  });
+</script>
+</body>
+</html>

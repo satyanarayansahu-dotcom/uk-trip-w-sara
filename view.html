@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UK Itinerary · View</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface2: #21262d;
+      --border: #30363d; --accent: #58a6ff; --green: #3fb950;
+      --yellow: #d29922; --orange: #f0883e; --purple: #bc8cff;
+      --pink: #ff7b72; --text: #e6edf3; --muted: #8b949e; --r: 12px;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; line-height: 1.5; }
+
+    /* ── Top bar ─────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 28px; height: 52px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 16px; }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      text-decoration: none; color: var(--muted);
+      font-size: 12px; font-weight: 600;
+      padding: 5px 10px; border-radius: 8px;
+      border: 1px solid var(--border);
+      transition: color .15s, border-color .15s;
+    }
+    .back-btn:hover { color: var(--text); border-color: var(--muted); }
+    .topbar-title { font-weight: 800; font-size: 15px; }
+    .topbar-title span { color: var(--accent); }
+    .manage-btn {
+      display: flex; align-items: center; gap: 6px;
+      text-decoration: none; color: var(--accent);
+      font-size: 12px; font-weight: 700;
+      padding: 6px 14px; border-radius: 8px;
+      background: rgba(88,166,255,.1); border: 1px solid rgba(88,166,255,.3);
+      transition: background .15s;
+    }
+    .manage-btn:hover { background: rgba(88,166,255,.2); }
+
+    /* ── Layout ─────────────────────────────── */
+    .page { padding: 24px 28px; display: flex; flex-direction: column; gap: 24px; max-width: 1200px; margin: 0 auto; }
+
+    /* ── Header hero ─────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+      border: 1px solid var(--border); border-radius: var(--r);
+      padding: 28px 32px;
+      display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    }
+    .hero-title { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; }
+    .hero-title span { color: var(--accent); }
+    .hero-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; border: 1px solid; }
+    .badge-blue   { color: var(--accent);  border-color: var(--accent);  background: rgba(88,166,255,.08); }
+    .badge-green  { color: var(--green);   border-color: var(--green);   background: rgba(63,185,80,.08); }
+    .badge-orange { color: var(--orange);  border-color: var(--orange);  background: rgba(240,136,62,.08); }
+    .badge-purple { color: var(--purple);  border-color: var(--purple);  background: rgba(188,140,255,.08); }
+
+    /* countdown in hero */
+    .hero-cd { display: flex; gap: 10px; flex-shrink: 0; }
+    .cd-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; text-align: center; min-width: 60px; }
+    .cd-val { font-size: 24px; font-weight: 800; color: var(--accent); letter-spacing: -1px; }
+    .cd-lbl { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-top: 1px; }
+
+    /* ── Grid helpers ────────────────────────── */
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+    /* ── KPI strip ───────────────────────────── */
+    .kpi-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 18px; }
+    .kpi-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .kpi-value { font-size: 22px; font-weight: 800; letter-spacing: -1px; margin: 6px 0 2px; }
+    .kpi-note  { font-size: 11px; color: var(--muted); }
+
+    /* ── Card ────────────────────────────────── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; }
+    .card-title {
+      font-weight: 700; font-size: 12px; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::before { content: ''; width: 3px; height: 14px; border-radius: 2px; background: var(--accent); flex-shrink: 0; }
+
+    /* ── Timeline ────────────────────────────── */
+    .timeline { display: flex; flex-direction: column; }
+    .tl-item { display: flex; gap: 12px; padding-bottom: 18px; }
+    .tl-item:last-child { padding-bottom: 0; }
+    .tl-left { display: flex; flex-direction: column; align-items: center; width: 30px; flex-shrink: 0; }
+    .tl-dot { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; background: var(--surface2); border: 2px solid var(--border); flex-shrink: 0; }
+    .tl-line { flex: 1; width: 2px; background: var(--border); margin-top: 4px; }
+    .tl-item:last-child .tl-line { display: none; }
+    .tl-body { flex: 1; padding-top: 3px; }
+    .tl-date { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .tl-place { font-size: 14px; font-weight: 700; margin: 2px 0 3px; }
+    .tl-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .tl-notes { font-size: 11px; color: var(--accent); margin-top: 3px; }
+
+    /* ── Flight cards ────────────────────────── */
+    .flight-list { display: flex; flex-direction: column; gap: 10px; }
+    .flight { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .flight-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .flight-carrier { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+    .flight-no { font-family: monospace; font-size: 11px; background: var(--surface); border: 1px solid var(--border); padding: 2px 7px; border-radius: 5px; color: var(--accent); }
+    .flight-route { display: flex; align-items: center; gap: 8px; }
+    .flight-city { font-weight: 700; font-size: 13px; }
+    .flight-time { font-size: 11px; color: var(--muted); }
+    .flight-line { flex: 1; height: 1px; background: var(--border); }
+    .flight-ref { font-size: 10px; color: var(--muted); margin-top: 6px; font-family: monospace; }
+    .flight-cost { font-size: 11px; color: var(--yellow); font-weight: 600; }
+
+    /* ── Stay cards ──────────────────────────── */
+    .stay-list { display: flex; flex-direction: column; gap: 10px; }
+    .stay { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .stay-left { flex: 1; }
+    .stay-loc { font-weight: 700; font-size: 14px; }
+    .stay-name { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .stay-dates { font-size: 11px; color: var(--accent); font-weight: 600; margin-top: 4px; }
+    .stay-meta { font-size: 10px; color: var(--muted); margin-top: 2px; font-family: monospace; }
+    .stay-right { text-align: right; flex-shrink: 0; }
+    .stay-cost-val { font-size: 16px; font-weight: 800; }
+    .stay-nights { font-size: 10px; color: var(--muted); }
+    .stay-nights-badge { font-size: 11px; padding: 2px 7px; border-radius: 10px; background: rgba(88,166,255,.1); color: var(--accent); font-weight: 600; margin-top: 4px; display: inline-block; }
+
+    /* ── Status badge ────────────────────────── */
+    .status { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+    .s-confirmed { background: rgba(63,185,80,.12); color: var(--green); }
+    .s-pending   { background: rgba(210,153,34,.12); color: var(--yellow); }
+    .s-tbc       { background: rgba(139,148,158,.12); color: var(--muted); }
+
+    /* ── Cost breakdown ──────────────────────── */
+    .cost-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .cost-row:last-child { border-bottom: none; }
+    .cost-label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .cost-val { font-weight: 700; }
+    .cost-total { display: flex; justify-content: space-between; align-items: center; padding-top: 14px; margin-top: 6px; border-top: 2px solid var(--border); }
+    .cost-total-label { font-weight: 700; font-size: 14px; }
+    .cost-total-val { font-size: 22px; font-weight: 800; color: var(--accent); }
+
+    /* ── Route SVG map ───────────────────────── */
+    .route-svg { width: 100%; height: 220px; display: block; }
+
+    /* ── Packing progress ────────────────────── */
+    .pack-cats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .pack-cat-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 8px; display: flex; justify-content: space-between; }
+    .pack-item-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .pack-item-row:last-child { border-bottom: none; }
+    .pack-check { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .pack-check.done { background: var(--green); border-color: var(--green); color: #fff; font-size: 9px; font-weight: 700; }
+    .pack-check.done::after { content: '✓'; }
+    .pack-item-text.done { text-decoration: line-through; color: var(--muted); }
+    .prog-wrap { margin-top: 20px; }
+    .prog-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+    .prog { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+    .prog-fill { height: 100%; border-radius: 3px; background: var(--green); }
+
+    /* ── Car card ────────────────────────────── */
+    .car-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .car-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .car-company { font-weight: 800; font-size: 16px; }
+    .car-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
+    .car-field label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 2px; }
+    .car-field span { font-size: 13px; font-weight: 600; }
+
+    @media (max-width: 800px) {
+      .page { padding: 12px; }
+      .row2, .row3 { grid-template-columns: 1fr; }
+      .hero { padding: 20px; }
+      .hero-cd { display: none; }
+    }
+
+    /* ── Bath background ─────────────────────── */
+    .bg-photo {
+      position: fixed; inset: 0; z-index: -1;
+      background-image: url('https://images.unsplash.com/photo-1534430480872-3498386e7856?w=1920&auto=format&fit=crop&q=80');
+      background-size: cover; background-position: center 35%;
+    }
+    .bg-photo-overlay {
+      position: fixed; inset: 0; z-index: -1;
+      background: rgba(8,20,40,0.88);
+    }
+  </style>
+</head>
+<body>
+<div class="bg-photo"></div>
+<div class="bg-photo-overlay"></div>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="home.html" class="back-btn">← Home</a>
+    <div class="topbar-title">🇬🇧 <span>UK Itinerary</span> · View</div>
+  </div>
+  <a href="itinerary.html" class="manage-btn">✏️ Edit / Manage</a>
+  <div id="user-chip-anchor" style="margin-left:10px"></div>
+</div>
+
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div>
+      <div class="hero-title">🇬🇧 <span>UK Road Trip</span> · July 2026</div>
+      <div class="hero-sub">Singapore → London → Brighton → Jurassic Coast → Bath → Singapore</div>
+      <div class="hero-badges" id="hero-badges">
+        <span class="badge badge-blue">✈ Qatar Airways</span>
+        <span class="badge badge-green" id="badge-nights">14 nights</span>
+        <span class="badge badge-orange">🚗 SIXT rental</span>
+        <span class="badge badge-purple">5 destinations</span>
+      </div>
+    </div>
+    <div class="hero-cd">
+      <div class="cd-box"><div class="cd-val" id="cd-d">—</div><div class="cd-lbl">Days</div></div>
+      <div class="cd-box"><div class="cd-val" id="cd-h">—</div><div class="cd-lbl">Hrs</div></div>
+      <div class="cd-box"><div class="cd-val" id="cd-m">—</div><div class="cd-lbl">Min</div></div>
+      <div class="cd-box"><div class="cd-val" id="cd-s">—</div><div class="cd-lbl">Sec</div></div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-strip" id="kpi-strip"></div>
+
+  <!-- Timeline + Flights -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-title">Day-by-day itinerary</div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="card-title">Flights</div>
+        <div class="flight-list" id="flights-view"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Route</div>
+        <svg class="route-svg" viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg">
+          <path d="M60,30 Q80,10 120,15 Q160,20 200,30 Q230,35 250,50 Q270,65 260,90 Q255,110 240,120 Q220,135 210,150 Q200,165 195,180" stroke="#30363d" stroke-width="1" fill="none"/>
+          <polyline points="185,55 170,78 148,100 118,132 128,148 118,168" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4 3" fill="none" opacity=".6"/>
+          <circle cx="185" cy="55" r="6" fill="#58a6ff"/><text x="193" y="59" font-size="11" fill="#e6edf3" font-family="sans-serif">London</text>
+          <circle cx="170" cy="78" r="5" fill="#3fb950"/><text x="178" y="82" font-size="10" fill="#3fb950" font-family="sans-serif">Brighton</text>
+          <circle cx="148" cy="100" r="5" fill="#d29922"/><text x="156" y="104" font-size="10" fill="#d29922" font-family="sans-serif">Jurassic Coast</text>
+          <circle cx="118" cy="132" r="5" fill="#f0883e"/><text x="80" y="130" font-size="10" fill="#f0883e" font-family="sans-serif" text-anchor="end">Durdle Door</text>
+          <circle cx="128" cy="148" r="5" fill="#bc8cff"/><text x="136" y="152" font-size="10" fill="#bc8cff" font-family="sans-serif">Bath</text>
+          <path d="M118,168 Q90,160 85,140 Q80,118 100,100 Q120,80 158,70 Q172,65 183,60" stroke="#ff7b72" stroke-width="1" stroke-dasharray="3 3" fill="none" opacity=".4"/>
+          <text x="54" y="168" font-size="9" fill="#ff7b72" font-family="sans-serif" opacity=".7">← return to LHR</text>
+          <text x="198" y="185" font-size="9" fill="#8b949e" font-family="sans-serif">~650 km total</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accommodation + Cost -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-title">Accommodation</div>
+      <div class="stay-list" id="accom-view"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="card-title">Car Rental</div>
+        <div id="car-view"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Cost Breakdown</div>
+        <div id="cost-view"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Packing -->
+  <div class="card">
+    <div class="card-title">Packing List</div>
+    <div class="pack-cats" id="pack-view"></div>
+    <div class="prog-wrap">
+      <div class="prog-label">
+        <span style="color:var(--muted)">Packing progress</span>
+        <strong id="pack-pct" style="color:var(--green)">0 / 0 (0%)</strong>
+      </div>
+      <div class="prog"><div class="prog-fill" id="pack-fill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script src="auth.js"></script>
+<script>
+// ── Defaults (mirror of manager) ──────────────
+const DEFAULTS = {
+  flights: [
+    { id:1, carrier:'Qatar Airways', flightNo:'QR947', date:'2026-07-03', from:'Singapore (T1)', dep:'19:30', to:'Doha',                  arr:'22:00',    ref:'1A/7CF6WM / QR/7CF6WM', cost:'4635', currency:'SGD', status:'confirmed', notes:'Outbound leg 1' },
+    { id:2, carrier:'Qatar Airways', flightNo:'QR11',  date:'2026-07-04', from:'Doha',           dep:'01:10', to:'London (Heathrow)',       arr:'06:25',    ref:'1A/7CF6WM / QR/7CF6WM', cost:'',     currency:'SGD', status:'confirmed', notes:'Outbound leg 2' },
+    { id:3, carrier:'Qatar Airways', flightNo:'QR12',  date:'2026-07-17', from:'London (Heathrow T4)', dep:'19:25', to:'Doha',            arr:'04:10+1',  ref:'', cost:'', currency:'SGD', status:'confirmed', notes:'Return leg 1' },
+    { id:4, carrier:'Qatar Airways', flightNo:'QR944', date:'2026-07-18', from:'Doha',           dep:'08:05', to:'Singapore (T1)',          arr:'21:15',    ref:'', cost:'', currency:'SGD', status:'confirmed', notes:'Return leg 2' },
+  ],
+  accom: [
+    { id:1, location:'London',       name:'2 Bedroom Serviced Apartment, Barbican & Old Street', checkin:'2026-07-04', checkout:'2026-07-08', phone:'+44 7958 533059', address:'58 Pear Tree Street, Islington, EC1V 3SB', confNo:'5688554940', cost:'2109', currency:'GBP', status:'confirmed', notes:'' },
+    { id:2, location:'Brighton',     name:'Four Points Flex by Sheraton Brighton Seafront',       checkin:'2026-07-08', checkout:'2026-07-09', phone:'+44-1273-820854', address:'139-141 Kings Road, Brighton BN1 2NA',       confNo:'99571873',  cost:'',     currency:'GBP', status:'confirmed', notes:'' },
+    { id:4, location:'West Lulworth',name:'Jurassic Bliss – caravan, partial sea view at Durdle Door', checkin:'2026-07-10', checkout:'2026-07-12', phone:'+44 7720 255619', address:'Durdle Door Caravan Park, Wareham, BH20 5PU', confNo:'5388842126', cost:'783', currency:'GBP', status:'confirmed', notes:'' },
+    { id:5, location:'Bath',         name:'TBC',                                                  checkin:'2026-07-12', checkout:'2026-07-17', phone:'', address:'', confNo:'', cost:'1534', currency:'GBP', status:'pending', notes:'' },
+  ],
+  car: [
+    { id:1, company:'SIXT', pickup:'London Victoria Station', pickupDate:'2026-07-08', dropoff:'London (TBC)', dropoffDate:'2026-07-17', confNo:'', cost:'1755', currency:'GBP', status:'confirmed', notes:'' },
+  ],
+  itinerary: [
+    { id:1,  date:'2026-07-03', location:'Singapore → Doha',  type:'Travel',  activity:'Depart Singapore Changi T1 on QR947 at 19:30', notes:'' },
+    { id:2,  date:'2026-07-04', location:'London',            type:'Arrive',  activity:'Arrive Heathrow 06:25. Check in Barbican apartment.', notes:'' },
+    { id:3,  date:'2026-07-05', location:'London',            type:'Explore', activity:'Explore London', notes:'' },
+    { id:4,  date:'2026-07-06', location:'London',            type:'Explore', activity:'Explore London', notes:'' },
+    { id:5,  date:'2026-07-07', location:'London',            type:'Explore', activity:'Explore London', notes:'' },
+    { id:6,  date:'2026-07-08', location:'Brighton',     type:'Drive',   activity:'London → Brighton. Brighton Beach, seafront promenade. Pick up SIXT car.', notes:'Best sunset at Seven Sisters' },
+    { id:8,  date:'2026-07-10', location:'West Lulworth', type:'Drive',  activity:'Brighton → Jurassic Coast. Durdle Door, Lulworth Cove, sunset at cliffs.', notes:'' },
+    { id:9,  date:'2026-07-11', location:'West Lulworth',     type:'Explore', activity:'Full day Jurassic Coast. Stair Hole, coastal walks, optional boat trip.', notes:'' },
+    { id:10, date:'2026-07-12', location:'Bath',              type:'Drive',   activity:'Jurassic Coast → Bath. Corfe Castle, Stourhead, Bradford-on-Avon optional.', notes:'' },
+    { id:11, date:'2026-07-13', location:'Bath',              type:'Explore', activity:'Explore Bath – Roman Baths, Georgian architecture', notes:'' },
+    { id:12, date:'2026-07-14', location:'Bath',              type:'Explore', activity:'Explore Bath', notes:'' },
+    { id:13, date:'2026-07-15', location:'Bath',              type:'Explore', activity:'Explore Bath', notes:'' },
+    { id:14, date:'2026-07-16', location:'Bath',              type:'Explore', activity:'Explore Bath', notes:'' },
+    { id:15, date:'2026-07-17', location:'London Heathrow',   type:'Travel',  activity:'Bath → LHR. Depart T4 QR12 at 19:25.', notes:'' },
+    { id:16, date:'2026-07-18', location:'Singapore',         type:'Arrive',  activity:'Arrive Changi T1 21:15 via QR944.', notes:'' },
+  ],
+  checklist: [
+    { category:'Clothes',    items:[ {text:'Bathing Suits',qty:'4',checked:false},{text:'T-shirts',qty:'5',checked:false},{text:'Jeans / trousers',qty:'2',checked:false},{text:'Warm jacket / fleece',qty:'1',checked:false},{text:'Light waterproof',qty:'1',checked:false},{text:'Comfortable walking shoes',qty:'1',checked:false},{text:'Smart casual outfit',qty:'1',checked:false},{text:'Socks & underwear',qty:'7',checked:false},{text:'Pyjamas',qty:'1',checked:false},{text:'Sun hat',qty:'1',checked:false},{text:'Sunglasses',qty:'1',checked:false} ] },
+    { category:'Toiletries', items:[ {text:'Sunscreen',qty:'1',checked:false},{text:'Shampoo & conditioner',qty:'1',checked:false},{text:'Body wash',qty:'1',checked:false},{text:'Toothbrush & paste',qty:'1',checked:false},{text:'Deodorant',qty:'1',checked:false},{text:'Moisturiser',qty:'1',checked:false},{text:'First aid kit',qty:'1',checked:false},{text:'Paracetamol / ibuprofen',qty:'1',checked:false} ] },
+    { category:'Gadgets',    items:[ {text:'Phone charger',qty:'1',checked:false},{text:'Universal travel adaptor (UK type G)',qty:'1',checked:false},{text:'Power bank',qty:'1',checked:false},{text:'Camera + memory cards',qty:'1',checked:false},{text:'Laptop / tablet + charger',qty:'1',checked:false},{text:'Earphones / AirPods',qty:'1',checked:false},{text:'Car phone mount',qty:'1',checked:false},{text:'USB-C cables',qty:'2',checked:false} ] },
+  ],
+};
+
+function getData(key) {
+  try {
+    const sk = Auth.storageKey(key);
+    const d  = localStorage.getItem(sk);
+    return d ? JSON.parse(d) : JSON.parse(JSON.stringify(DEFAULTS[key]));
+  } catch { return JSON.parse(JSON.stringify(DEFAULTS[key])); }
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDate(d) { if (!d) return '—'; const dt = new Date(d + 'T00:00:00'); return dt.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }); }
+function nights(a, b) { if (!a || !b) return 0; return Math.round((new Date(b) - new Date(a)) / 86400000); }
+function statusBadge(s) {
+  const m = { confirmed:'s-confirmed', pending:'s-pending', tbc:'s-tbc' };
+  const l = { confirmed:'Confirmed', pending:'Pending', tbc:'TBC' };
+  return `<span class="status ${m[s]||'s-tbc'}">${l[s]||s}</span>`;
+}
+
+const TYPE_ICONS = { Arrive:'🛬', Depart:'🛫', Travel:'✈', Drive:'🚗', Explore:'🗺', Rest:'😴', Activity:'📍' };
+
+// ── Countdown ─────────────────────────────────
+const DEPART = new Date('2026-07-03T11:30:00Z');
+function tick() {
+  const diff = DEPART - new Date();
+  if (diff <= 0) { ['cd-d','cd-h','cd-m','cd-s'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent='0'; }); return; }
+  const el = (id) => document.getElementById(id);
+  if(el('cd-d')) el('cd-d').textContent = Math.floor(diff / 86400000);
+  if(el('cd-h')) el('cd-h').textContent = Math.floor((diff % 86400000) / 3600000);
+  if(el('cd-m')) el('cd-m').textContent = Math.floor((diff % 3600000) / 60000);
+  if(el('cd-s')) el('cd-s').textContent = Math.floor((diff % 60000) / 1000);
+}
+tick(); setInterval(tick, 1000);
+
+// ── KPIs ──────────────────────────────────────
+function renderKPIs() {
+  const flights = getData('flights');
+  const accom   = getData('accom');
+  const car     = getData('car');
+
+  const outbound = flights.find(f => f.flightNo === 'QR947' || (f.notes && f.notes.toLowerCase().includes('outbound leg 1')));
+  const ret      = flights.find(f => f.flightNo === 'QR12'  || (f.notes && f.notes.toLowerCase().includes('return leg 1')));
+  const flightCost = flights.filter(f => f.cost).map(f => ({ val: parseFloat(f.cost)||0, cur: f.currency })).filter(x => x.val > 0);
+  const accomCost  = accom.reduce((s, a) => s + (parseFloat(a.cost)||0), 0);
+  const carCost    = car.reduce((s, c) => s + (parseFloat(c.cost)||0), 0);
+  const totalNights = accom.reduce((s, a) => s + nights(a.checkin, a.checkout), 0);
+
+  const kpis = [
+    { label:'Departure', value: outbound ? fmtDate(outbound.date) : '—', note: outbound ? `${esc(outbound.from)} · ${esc(outbound.dep)}` : '', color: 'var(--accent)' },
+    { label:'Return',    value: ret      ? fmtDate(ret.date)      : '—', note: ret      ? `${esc(ret.from)} · ${esc(ret.dep)}`           : '', color: 'var(--pink)' },
+    { label:'Total nights', value: String(totalNights), note: `${accom.length} stays`, color: 'var(--green)' },
+    { label:'Flights',   value: flightCost.length ? flightCost.map(x => x.cur + ' ' + x.val.toLocaleString()).join(' + ') : '—', note: 'Qatar Airways', color: 'var(--yellow)' },
+    { label:'Accommodation', value: accomCost ? '£' + accomCost.toLocaleString() : '—', note: 'known costs', color: 'var(--orange)' },
+    { label:'Car rental', value: carCost ? '£' + carCost.toLocaleString() : '—', note: car[0] ? esc(car[0].company) : '', color: 'var(--purple)' },
+  ];
+
+  document.getElementById('kpi-strip').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="color:${k.color};font-size:${k.value.length > 8 ? '14px' : '22px'}">${k.value}</div>
+      <div class="kpi-note">${k.note}</div>
+    </div>`).join('');
+}
+
+// ── Timeline ──────────────────────────────────
+function renderTimeline() {
+  const data = getData('itinerary');
+  document.getElementById('timeline').innerHTML = data.map(d => `
+    <div class="tl-item">
+      <div class="tl-left">
+        <div class="tl-dot">${TYPE_ICONS[d.type]||'📍'}</div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-body">
+        <div class="tl-date">${fmtDate(d.date)}</div>
+        <div class="tl-place">${esc(d.location)}</div>
+        <div class="tl-desc">${esc(d.activity)}</div>
+        ${d.notes ? `<div class="tl-notes">💡 ${esc(d.notes)}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ── Flights ───────────────────────────────────
+function renderFlights() {
+  const data = getData('flights');
+  document.getElementById('flights-view').innerHTML = data.map(f => `
+    <div class="flight">
+      <div class="flight-head">
+        <div class="flight-carrier">✈ ${esc(f.carrier)} <span class="flight-no">${esc(f.flightNo)}</span> ${statusBadge(f.status)}</div>
+        <div style="font-size:11px;color:var(--muted)">${fmtDate(f.date)}</div>
+      </div>
+      <div class="flight-route">
+        <div><div class="flight-city">${esc(f.from)}</div><div class="flight-time">${esc(f.dep)}</div></div>
+        <div class="flight-line"></div>
+        <span style="color:var(--muted);font-size:13px">→</span>
+        <div class="flight-line"></div>
+        <div style="text-align:right"><div class="flight-city">${esc(f.to)}</div><div class="flight-time">${esc(f.arr)}</div></div>
+      </div>
+      ${f.ref ? `<div class="flight-ref">Ref: ${esc(f.ref)}</div>` : ''}
+      ${f.cost ? `<div class="flight-cost">${esc(f.currency)} ${parseFloat(f.cost).toLocaleString()}</div>` : ''}
+    </div>`).join('');
+}
+
+// ── Accommodation ─────────────────────────────
+function renderAccom() {
+  const data = getData('accom');
+  document.getElementById('accom-view').innerHTML = data.map(a => {
+    const n = nights(a.checkin, a.checkout);
+    return `
+    <div class="stay">
+      <div class="stay-left">
+        <div class="stay-loc">${esc(a.location)} ${statusBadge(a.status)}</div>
+        <div class="stay-name">${esc(a.name)}</div>
+        <div class="stay-dates">${fmtDate(a.checkin)} → ${fmtDate(a.checkout)}</div>
+        ${a.confNo ? `<div class="stay-meta">Conf: ${esc(a.confNo)}${a.phone ? ' · ' + esc(a.phone) : ''}</div>` : ''}
+        ${a.address ? `<div class="stay-meta">${esc(a.address)}</div>` : ''}
+      </div>
+      <div class="stay-right">
+        ${a.cost ? `<div class="stay-cost-val" style="color:var(--accent)">£${parseFloat(a.cost).toLocaleString()}</div><div class="stay-nights">total</div>` : '<div style="color:var(--muted);font-size:12px">TBC</div>'}
+        ${n ? `<div class="stay-nights-badge">${n} night${n!==1?'s':''}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Car ───────────────────────────────────────
+function renderCar() {
+  const data = getData('car');
+  if (!data.length) { document.getElementById('car-view').innerHTML = '<div style="color:var(--muted);font-size:13px">No rental added.</div>'; return; }
+  const c = data[0];
+  const n = nights(c.pickupDate, c.dropoffDate);
+  document.getElementById('car-view').innerHTML = `
+    <div class="car-card">
+      <div class="car-head">
+        <div class="car-company">🚗 ${esc(c.company)}</div>
+        ${statusBadge(c.status)}
+        ${c.cost ? `<div style="font-size:18px;font-weight:800;color:var(--purple)">£${parseFloat(c.cost).toLocaleString()}</div>` : ''}
+      </div>
+      <div class="car-details">
+        <div class="car-field"><label>Pick-up</label><span>${esc(c.pickup)}</span></div>
+        <div class="car-field"><label>Pick-up date</label><span>${fmtDate(c.pickupDate)}</span></div>
+        <div class="car-field"><label>Drop-off</label><span>${esc(c.dropoff)}</span></div>
+        <div class="car-field"><label>Drop-off date</label><span>${fmtDate(c.dropoffDate)}</span></div>
+        ${c.confNo ? `<div class="car-field"><label>Conf. No.</label><span>${esc(c.confNo)}</span></div>` : ''}
+        ${n ? `<div class="car-field"><label>Duration</label><span>${n} days</span></div>` : ''}
+      </div>
+    </div>`;
+}
+
+// ── Cost breakdown ────────────────────────────
+function renderCost() {
+  const flights = getData('flights');
+  const accom   = getData('accom');
+  const car     = getData('car');
+
+  const rows = [];
+  const flightCosts = {};
+  flights.filter(f => f.cost).forEach(f => {
+    const c = f.currency; flightCosts[c] = (flightCosts[c]||0) + (parseFloat(f.cost)||0);
+  });
+  Object.entries(flightCosts).forEach(([cur, val]) => rows.push({ icon:'✈', label:'Flights (' + cur + ')', val: cur + ' ' + val.toLocaleString(), color:'var(--yellow)' }));
+
+  accom.forEach(a => {
+    if (a.cost) rows.push({ icon:'🏨', label: a.location, val: '£' + parseFloat(a.cost).toLocaleString(), color:'var(--accent)' });
+    else rows.push({ icon:'🏨', label: a.location, val: 'TBC', color:'var(--muted)' });
+  });
+  car.forEach(c => {
+    if (c.cost) rows.push({ icon:'🚗', label: c.company + ' rental', val: '£' + parseFloat(c.cost).toLocaleString(), color:'var(--purple)' });
+  });
+
+  const totalGBP = accom.reduce((s,a) => s + (parseFloat(a.cost)||0), 0) + car.reduce((s,c) => s + (parseFloat(c.cost)||0), 0);
+
+  document.getElementById('cost-view').innerHTML =
+    rows.map(r => `<div class="cost-row"><div class="cost-label"><span>${r.icon}</span>${esc(r.label)}</div><div class="cost-val" style="color:${r.color}">${esc(r.val)}</div></div>`).join('') +
+    `<div class="cost-total"><div class="cost-total-label">Accommodation + Car (GBP)</div><div class="cost-total-val">£${totalGBP.toLocaleString()}</div></div>`;
+}
+
+// ── Packing ───────────────────────────────────
+function renderPacking() {
+  const data = getData('checklist');
+  let total = 0, done = 0;
+  document.getElementById('pack-view').innerHTML = data.map(cat => {
+    const catDone = cat.items.filter(i => i.checked).length;
+    total += cat.items.length; done += catDone;
+    return `
+    <div>
+      <div class="pack-cat-title">
+        <span>${esc(cat.category)}</span>
+        <span>${catDone}/${cat.items.length}</span>
+      </div>
+      ${cat.items.map(item => `
+        <div class="pack-item-row">
+          <div class="pack-check${item.checked?' done':''}"></div>
+          <span class="pack-item-text${item.checked?' done':''}">${esc(item.text)}${item.qty ? ' <span style="color:var(--muted)">×'+esc(item.qty)+'</span>' : ''}</span>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+  const pct = total ? Math.round((done/total)*100) : 0;
+  document.getElementById('pack-pct').textContent = `${done} / ${total} packed (${pct}%)`;
+  document.getElementById('pack-fill').style.width = pct + '%';
+}
+
+// ── Init ──────────────────────────────────────
+renderKPIs();
+renderTimeline();
+renderFlights();
+renderAccom();
+renderCar();
+renderCost();
+renderPacking();
+
+Auth.injectChipStyles();
+Auth.requireAuth();
+Auth.renderUserChip('#user-chip-anchor');
+</script>
+</body>
+</html>
