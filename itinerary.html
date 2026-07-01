@@ -1268,7 +1268,6 @@ async function initPage() {
   renderChecklist();
   renderContacts();
 }
-initPage();
 
 // ══════════════════════════════════════════════
 //  ACCESS MANAGEMENT (admin only)
@@ -1580,6 +1579,7 @@ Auth.injectChipStyles();
   Auth.renderUserChip('#user-chip-anchor');
   enforceRole();
   if (Auth.isAdmin()) renderAccess();
+  await initPage();
 })();
 </script>
 </body>
