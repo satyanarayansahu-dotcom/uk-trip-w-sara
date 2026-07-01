@@ -662,7 +662,7 @@ function toggleDD() {
   btn.classList.toggle('open');
   menu.classList.toggle('open');
 }
-document.addEventListener('click', e => {
+document.addEventListener('mousedown', e => {
   if (!document.getElementById('nav-dropdown').contains(e.target)) {
     document.getElementById('dd-btn').classList.remove('open');
     document.getElementById('dd-menu').classList.remove('open');
