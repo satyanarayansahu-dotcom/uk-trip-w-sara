@@ -203,6 +203,7 @@
       font-family: inherit;
       transition: border-color .15s;
       width: 100%;
+      color-scheme: dark;
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
@@ -585,7 +586,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Airline</label><input id="ex-carrier"  style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. Qatar Airways"/></div>
         <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Flight No.</label><input id="ex-flightNo" style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. QR947"/></div>
-        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Date</label><input id="ex-date"     style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" type="date"/></div>
+        <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Date</label><input id="ex-date"     style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none;color-scheme:dark" type="date"/></div>
         <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Booking Ref</label><input id="ex-ref"      style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. ABC123"/></div>
         <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">From</label><input id="ex-from"     style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. Singapore (T1)"/></div>
         <div><label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8b949e;margin-bottom:5px">Departure time</label><input id="ex-dep"      style="width:100%;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;padding:8px 10px;outline:none" placeholder="e.g. 19:30"/></div>
@@ -805,6 +806,9 @@ function renderFlights() {
         </div>
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 10px">👥 Travellers on this flight</div>
         ${tvlRows}
+        <div style="display:flex;justify-content:flex-end;margin-top:16px">
+          <button class="btn btn-primary" onclick="saveFlight(${f.id})">💾 Save flight</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -813,6 +817,11 @@ function updateFlight(id, field, val) {
   const data = getData('flights');
   const item = data.find(x => x.id === id);
   if (item) { item[field] = val; save('flights', data); renderFlights(); }
+}
+function saveFlight(id) {
+  const data = getData('flights');
+  save('flights', data);
+  showToast();
 }
 function updateTraveller(flightId, ti, field, val) {
   const data = getData('flights');
